@@ -71,4 +71,4 @@ print "That gives us " + str(imsize(image,"v")/blocksize) + "x" + str(imsize(ima
 
 example = d_block(image, 0, 0)
 print example
-plotgray(example, "no") # interpolating i guess
+plotgray(example, "no") # interpolating i guess...
