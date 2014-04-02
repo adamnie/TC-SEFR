@@ -1,6 +1,8 @@
 input1 = open('hello.pgm','r')
 output1 = open('inversed.pgm','w')
 
+print ("haha")
+
 pixels = []
 output = []
 picture = input1.readlines()
