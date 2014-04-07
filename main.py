@@ -18,7 +18,7 @@ image.printsize()
 # Small blocks are RANGE: size blocksize x blocksize
 # Big blocks are DOMAIN: size 2blocksize x 2blocksize
 
-blocksize = 2
+blocksize = 4
 image.plot()
 
 if (image.height()%(2*blocksize) != 0 or image.width()%(2*blocksize) != 0):   # Checking if our image can be divided into block without rest
@@ -43,6 +43,10 @@ print "We also can have " + str((image.height()/blocksize)-1) + "x" + str((image
 print "An example of D block: "
 b = image.blockD(0,0, blocksize)
 print b
-b.plot() 
+b.plot()
 
-
+print "Here we should have an error:"
+c = image.blockD(125,125,blocksize)
+print c
+d = image.blockD(127,127,blocksize)
+print d

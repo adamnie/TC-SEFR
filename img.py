@@ -82,13 +82,17 @@ class img(numpy.ndarray):
 
     # sets D block of size=2*blocksize and number [h,v] as defined above 
     def blockD(self, x, y, blocksize):
-        x *= blocksize
-        y *= blocksize
-        crop1 = self[y:y+2*blocksize]
-        crop2 = numpy.zeros(shape=(2*blocksize,2*blocksize))
-        for index in range(2*blocksize):
-            crop2[index] = (crop1[index])[x:x+2*blocksize]
-        return crop2.view(R_block)
+	if (x <= (self.width()/blocksize - 2) and y <= (self.height()/blocksize)-2):
+		x *= blocksize
+		y *= blocksize
+		crop1 = self[y:y+2*blocksize]
+		crop2 = numpy.zeros(shape=(2*blocksize,2*blocksize))
+		for index in range(2*blocksize):
+		    crop2[index] = (crop1[index])[x:x+2*blocksize]
+		return crop2.view(R_block)
+	else:
+		print "Blad indeksowania D_block"		
+		return -1
 
 # class for R_block for special operations
 class R_block(img):
