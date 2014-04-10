@@ -1,14 +1,17 @@
 import numpy as np
 from numpy import linalg as LA
 from PIL import ImageFile
+from PIL import Image
+from img import *
 
 # y - vertical , x - horizontal
 
 """
 	future optimization : instead of x and y indexes hash should be used
-"""
 
-def E(R,D):
+	C should be used to improve compare function
+"""
+def compare(R,D):
 
 	"""
 	computes best match Domain block(D) for Range Block (R)
@@ -16,140 +19,100 @@ def E(R,D):
 	E(R, D) = norm(R - (s*D + o*U))
 
 	lowest E defines best match
-
 	s = ( (R-R_average *U) dot (D-D_average *U) ) / ( (D-D_average *U) dot (D-D_average *U) )
 	o = R_average - s*D_average
-	
 	"""
+	Res = {}
 
-	R_average = np.mean(R) 
-	D_average = np.mean(D)
+	R_average = R.mean();
+	D_average = D.mean();
+	s = (np.array(R-R_average)*np.array(D-D_average)).sum() / (np.array(D-D_average)*np.array(D-D_average)).sum()
+	o = R_average - s* D_average;
+	E = LA.norm(R*(s*D+o))
 
-	R_shape = np.shape(R)
+	Res['E'] = E
+	Res['s'] = s
+	Res['o'] = o
+	Res['x'] = -1
+	Res['y'] = -1
+	Res['t'] = -1
 
-	U = np.ones(R_shape)
+	return Res
 
-	R_sub = np.subtract(R,np.multiply(R_average,U)) # R - R_average*U
-	D_sub = np.subtract(D,np.multiply(D_average,U)) # D - D_average*U
-
-	# if np.dot(D_sub,D_sub) != 0:
-	if np.dot(D_sub.flatten(),D_sub.flatten()) == 0:
-		s = 0
-	else:
-		s = np.divide( np.dot(R_sub.flatten(),D_sub.flatten()) , np.dot(D_sub.flatten(),D_sub.flatten()) ) # there will be problem if dot(D_sub,D_sub  == 0)
-	# elif np.dot(R_sub,D_sub) != 0:
-	  # s = float('inf') # number/0 = infinity
-	# else:
-	  # s = 0
-	o = R_average - s * D_average
-
-	E = LA.norm(np.subtract(R,np.multiply(s,D) + np.multiply(o,U)))
-
-	return E
-
-def block_coords(id,block_size,img_x_size,img_y_size):
-	"""
-		Calcucaltes x and y indexes of top left corner of the block
-		and returns (a dictonary)
-	"""
-	coords = {}
-
-	coords['x'] = (id-1)*block_size % img_x_size
-	coords['y'] = ((id-1)*block_size / img_x_size)*block_size # there is only one left top corner line for each block_size
-
-
-	if coords['y'] > img_y_size:
-		print 'Error, fuck you!'
-		return None
-	return coords
-
-def block(id,block_size,img):
-	"""
-		Based on id returns image block
-	"""
-
-	img_y_size = len(img)
-	img_x_size = len(img[0])
-
-	left_corner = block_coords(id,block_size,img_x_size,img_y_size)
-
-	block = np.empty([block_size,block_size])
-
-	for i in range(0,block_size-1):
-			for j in range(0,block_size-1):
-				block[i][j] = img[left_corner['y']+i[left_corner['x']+j]
-
-	return block
-
-def rotation(D):
+def transform(D,type):
 	"""
 	  possible rotations (in degrees): 0 , 90 , 180 , 270
-	  rotation is clockwise
-
-	  Is it possible to join 4 blocks and rotate the bigger one ?
-	  joining speed vs rot speed
+	  possible flips: left-to-right
 	"""
+	#if type >= 8:
+	#  print 'Error, transformation not handled'
+	#  return -1
 
-	rotated_D = []
+	if type >= 4:
+		return np.rot90(np.fliplr(D),type%4)
+	else:
+		return np.rot90(D,type%4)
 
-	rotated_D.append(D)
-	rotated_D.append(np.rot90(D,3))
-	rotated_D.append(np.rot90(D,2))
-	rotated_D.append(np.rot90(D,1))
-
-	return rotated_D
-
-def average(block):
+def average(D):
 	"""
 		Averages four neighbouring pixels
 	"""
-	average = np.empty([len(block)/2,len(block)/2])
-	ver = np.hsplit(block,2)
-	for subArr in ver:
-		np.append(average,np.hsplit(subArr,2))
+	newShape = len(D)/2
+	D_av = np.empty([newShape,newShape])
+	for i in range(0,newShape):
+		for j in range(0,newShape):
+			D_av[i,j] =  D[2*i:2*(i+1),2*j:2*(j+1)].mean()
+	return D_av
 
-	for subArr in average:
-		subArr = np.mean(subArr)
-
-	return average
-			
-def calculate_transformation():
+def compression(R_size,image):
 	"""
 		function finds best match Domain Block (D) for every Range Block (R)
 		saves data (x,y,s,o,E,t) into transform_list(not yet)
-
 	"""
-	pixels = open_img_PGM()
+	MAX_ERROR = float('inf')
 
-	pixels_size_y = len(pixels)
-	pixels_size_x = len(pixels[0])
+	R_number = [image.block_number_x(R_size) , image.block_number_y(R_size)]
+	D_number = [image.block_number_x(2*R_size) , image.block_number_y(2*R_size)]
 
-	R_size = 2
-	D_size = 4
+	D_list = get_D_blocks(image,D_number,R_size)
 
-	R_number = calculate_block_number(R_size,pixels_size_x,pixels_size_y)
-	D_number = calculate_block_number(D_size,pixels_size_x,pixels_size_y)
+	transform_list = []
+	for R_x in range(0,R_number[0]):
+		transform_list.append([])
+		for R_y in range (0,R_number[1]):
+			R = image.blockR(R_y,R_x,R_size)
+			transform_list[R_x].append({'E': MAX_ERROR})
+			for D_x in range(0,D_number[0]):
+				for D_y in range (0,D_number[1]):
+					for T_type in range(7):
+						Res = compare(R,transform(D_list[D_x][D_y],T_type))
+						if Res['E'] < transform_list[R_x][R_y]['E']:
+							transform_list[R_x][R_y] = Res 
+							transform_list[R_x][R_y]['x'] = D_x
+							transform_list[R_x][R_y]['y'] = D_y
+							transform_list[R_x][R_y]['t'] = T_type
+					
+	return transform_list
 
-	E_list = float('inf')* np.ones([R_size,1])
+def get_D_blocks(image,D_number,R_size):
+	D_list = []
+	for D_x in range(0,D_number[0]):
+		D_list.append([])
+		for D_y in range (0,D_number[1]):
+			D = image.blockD(D_y,D_x,R_size)
+			D = average(D)
+			D_list[D_x].append(D)
 
+	return D_list
 
-	for R in range(0,R_number):
-		for D in range(0,D_number):
-			E_ = E(block(R,R_size,pixels),average(block(D,D_size,pixels)))
-			if (E_ < E_list[R]):
-				E_list[R] = E_
-
-	return E
-
-def open_img_PGM():
+def open_img_PGM(filename):
 	"""
 	Opens .PGM image using pillow library
 
 	should return 2D list / numpy.array of pixels in gray scale
 	"""
 
-	fp = open("lena.pgm",'rb')
-
+	fp = open(filename,'rb')
 
 	p = ImageFile.Parser()
 
@@ -162,9 +125,17 @@ def open_img_PGM():
 	im = p.close()
 
 	pixels = np.asarray(im)
-	return pixels
+	return pixels.view(img)
 
-def calculate_block_number(block_size,img_size_x,img_size_y):
-	return (img_size_y*img_size_x)*(block_size ** 2)
+def decompression(transform_list,img_size,blockSize):
+	Base = np.zeros(img_size)+127
 
-print calculate_transformation()
+	for iteration in range(0,2):
+		for i in range(Base.shape[0]/blockSize):
+			for j in range(Base.shape[0]/blockSize):
+
+				Base[blockSize*i:blockSize*(i+1),blockSize*j:blockSize*(j+1)] = (transform(average(Base[transform_list[i][j]['x']:transform_list[i][j]['x']+2*blockSize,transform_list[i][j]['y']:transform_list[i][j]['y'] + 2*blockSize]),transform_list[i][j]['t']))*transform_list[i][j]['s'] + transform_list[i][j]['o']
+
+	img = Image.fromarray(numpy.uint8(numpy.matrix(Base)))
+	img.save('lena_frac.pgm')
+
