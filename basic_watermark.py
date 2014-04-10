@@ -11,10 +11,8 @@ from metrics import *
 # 3. form a watermarking key (max 2 or 3 bit length)
 # 4. area = area | key (binary or)
 
-# obraz = open_img_PGM("mona_lisa.pgm")  nie dziala :(
-
-obraz = misc.lena()                        # importing image
-image = obraz.view(img)                    # numpy way of subclassing...
+image = open_img_PGM("reese.pgm")          # importing image
+image.setflags(write=True)			       # permission to edit values
 
 image.plot()
 
@@ -30,4 +28,6 @@ for y in range(losowosc.height()):
 		losowosc[x][y]=key[x][y]
 		image[rand_width+x][rand_height+y] += key[x][y]  # adding, not ORing... obvious problems with values near 255
 
-image.plot()
+image.cutsquare(0,0,250).plot()
+
+# niewiele z tego wynika...
