@@ -10,7 +10,7 @@ import numpy
 
 # class for imported image
 class img(numpy.ndarray):
-   
+
     # initialize
     def __init__(self, obraz):
         self.obraz = obraz
@@ -42,6 +42,7 @@ class img(numpy.ndarray):
     # that goes to img.blockR(127,127) which returns lower right corner (last block)
     # warning: to be consistent, D blocks are 0-indexed!
 
+    # can be used to zooming with plot()!
     def cutsquare(self, x, y, size): # x i y sa w pikselach
         crop1 = self[y:y+size] # przyciecie pozadanej ilosci wierszy tabeli, czyli przyciecie wertykalne (y)
         crop2 = numpy.zeros(shape=(size,size))
