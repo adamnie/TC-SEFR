@@ -1,4 +1,5 @@
 # quadranttest.py
+# przyklad jak korzystac z quadrant()
 
 from wm_img import *
 import numpy as np
@@ -8,8 +9,8 @@ test = np.reshape(test, (8,8))
 test = test.view(blockA)
 
 #print test
+print test
 
-"""
 first = test.quadrant(0)
 second = test.quadrant(1)
 third = test.quadrant(2)
@@ -28,11 +29,11 @@ print "Quadrant", fourth.q
 print fourth
 """
 
-no=3
+no=0
 
 testA = test.view(blockA)
 testA = testA.quadrant(no)
-print "Quadrant", testA.q, type(testA)
+print "Quadrant", testA.q, type(testA) # zwraca tez typ, w razie jakichs problemow
 print testA
 testA.set_mapper()
 print "Mapper is", testA.mapper 
@@ -54,3 +55,5 @@ print testC
 testC.set_mapper()
 print "Mapper is", testC.mapper 
 print
+
+"""

@@ -87,6 +87,12 @@ class img(numpy.ndarray):
         sth = self.cutsquare(x*delta,y*delta,2*Rsize)
         return sth.view(D_block)
 
+    def block_number_x(self,blocksize):
+        return self.width()/blocksize
+
+    def block_number_y(self,blocksize):
+        return self.width()/blocksize
+
     def shiftup(self,x=4):
         return np.roll(self,-x,axis=0)
 
