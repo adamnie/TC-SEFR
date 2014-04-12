@@ -3,7 +3,7 @@
     Defining classes with all needed methods.
 """
 
-
+import numpy as np
 from scipy import misc
 import matplotlib.pyplot as plt
 import numpy
@@ -27,21 +27,20 @@ class img(numpy.ndarray):
     def printsize(self):
         print "Image size: height " + str(self.height()) + ", width: " + str(self.width())
 
+    def checksize(self):
+        if (image.height()%(2*Rsize) != 0 or image.width()%(2*Rsize) != 0):   # Checking if our image can be divided into block without rest
+            image = image[1:len(image)-image.height()%(2*Rsize)] # If not, cropping from down right corner
+            for line in image:
+                line = line[1:len(image)-image.width()%(2*Rsize)]
+    
     # plots normalized image in grayscale
     def plot(self): #in grayscale
         plt.imshow(self, cmap=plt.cm.gray, norm=plt.Normalize(0,255))
-        plt.ion()
-        plt.show(block=True)
+        plt.show()
 
     # exports image to file
     def export(filename):
         misc.imsave(filename,self)
-
-    # sets R block of size=Rsize and number [h,v] 
-    # e.g. when you have 512x512 image and Rsize=4, you have 128x128 R blocks
-    # img.blockR(0,0) returns first ([0,0]), img.blockR(0,1) returns second ([0,1])...
-    # that goes to img.blockR(127,127) which returns lower right corner (last block)
-    # warning: to be consistent, D blocks are 0-indexed!
 
     # can be used to zooming with plot()!
     def cutsquare(self, x, y, size): # x i y sa w pikselach
@@ -51,7 +50,13 @@ class img(numpy.ndarray):
             crop2[index] = (crop1[index])[x:x+size]  #przyciecie pozadanej ilosci elementow w wierszu, czyli przyciecie horyzontalne (x)
         return crop2.view(img)
    
-    def blockR(self, x, y, Rsize):
+    # sets R block of size=Rsize and number [h,v] 
+    # e.g. when you have 512x512 image and Rsize=4, you have 128x128 R blocks
+    # img.blockR(0,0) returns first ([0,0]), img.blockR(0,1) returns second ([0,1])...
+    # that goes to img.blockR(127,127) which returns lower right corner (last block)
+    # warning: to be consistent, D blocks are 0-indexed!
+
+    def blockR(self, x, y, Rsize):   # NON-OVERLAPPING
         sth = self.cutsquare(x*Rsize,y*Rsize,Rsize)
         return sth.view(R_block)
     
@@ -73,7 +78,7 @@ class img(numpy.ndarray):
     # delta is the step of selecting next image, default it's equal to Rsize 
     # x and y are numbers (indexes) of block D, assuming Dsize=2*Rsize and step=delta
 
-    def blockD(self, x, y, Rsize, delta=None):
+    def blockD(self, x, y, Rsize, delta=None): # OVERLAPPING
         if (x>self.howmanyDinarow(Rsize,delta)-1 or y>self.howmanyDinacolumn(Rsize,delta)-1):
             print "Blad indeksowania D!!!"
             return -1
@@ -81,6 +86,13 @@ class img(numpy.ndarray):
             delta = Rsize
         sth = self.cutsquare(x*delta,y*delta,2*Rsize)
         return sth.view(D_block)
+
+    def shiftup(self,x=4):
+        return np.roll(self,-x,axis=0)
+
+    def shiftleft(self,x=4):
+        return np.roll(self,-x,axis=1)
+
 
 # class for R_block for special operations
 class R_block(img):
