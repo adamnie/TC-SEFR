@@ -13,6 +13,8 @@ import datetime
 """
     future optimization : instead of x and y indexes hash should be used
 
+    flat lists with smart indecies instead of slow 2d lists
+
     C should be used to improve compare function
 """
 
@@ -60,7 +62,7 @@ class fractal:
         else:
             return np.rot90(D,type%4)
 
-    def compression(self,R_size,image):
+    def compression(self,R_size,image_R,image_D):
         """
             function finds best match Domain Block (D) for every Range Block (R)
             saves data (x,y,s,o,E,t) into transform_list(not yet)
@@ -72,20 +74,20 @@ class fractal:
         how_many = 20
 
         #calculating number of R and D blocks
-        R_number = [image.block_number_x(R_size) , image.block_number_y(R_size)]
-        D_number = [image.block_number_x(2*R_size) , image.block_number_y(2*R_size)]
+        R_number = [image_R.block_number_y(R_size) , image_R.block_number_x(R_size)]
+        D_number = [image_D.block_number_y(2*R_size) , image_D.block_number_x(2*R_size)]
         # getting full list of D blocks (so D blocks doesn't hae to be calculated multiple times )
-        D_list = self.get_D_blocks(image,D_number,R_size)
+        D_list = self.get_D_blocks(image_D,D_number,R_size)
 
         transform_list = []
-        for R_x in range(0,R_number[0]):
+        for R_y in range(0,R_number[0]):
             transform_list.append([])
-            for R_y in range (0,R_number[1]):
-                R = image.blockR(R_y,R_x,R_size)
-                transform_list[R_x].append({'E': MAX_ERROR})
+            for R_x in range (0,R_number[1]):
+                R = image_R.blockR(R_x,R_y,R_size)
+                transform_list[R_y].append({'E': MAX_ERROR})
                 local_DCT_transform_list = []
-                for D_x in range(0,D_number[0]):
-                    for D_y in range (0,D_number[1]):
+                for D_y in range(0,D_number[0]):
+                    for D_x in range (0,D_number[1]):
                         for T_type in range(7):
                             local_dict = {}
                             local_dict['Distance'] = self.DCT.compare(R,self.transform(D_list[D_x][D_y],T_type))
@@ -94,15 +96,10 @@ class fractal:
                             local_dict['t'] = T_type
                             local_DCT_transform_list.append(local_dict)
 
-                compare_list = self.find_best(how_many,local_DCT_transform_list)
-                for match in compare_list:
-                    D = self.transform(D_list[match['x']][match['y']],match['t'])
-                    Res = self.compare(R,D)  
-                    if Res['E'] < transform_list[R_x][R_y]['E']:      
-                        transform_list[R_x][R_y] = Res 
-                        transform_list[R_x][R_y]['x'] = D_x
-                        transform_list[R_x][R_y]['y'] = D_y
-                        transform_list[R_x][R_y]['t'] = T_type
+                list_to_compare = self.find_best(how_many,local_DCT_transform_list)
+
+                transform_list[R_y][R_x] = self.compare_best(R,list_to_compare,D_list)
+
 
         print "it took: ", (datetime.datetime.now() - time)                        
 
@@ -113,50 +110,26 @@ class fractal:
         sorted_dct = sorted(dct_transform_list,key= lambda dct_transform : dct_transform['Distance'])
         return sorted_dct[:how_many]
 
-    def compression_A(self,R_size,image_R,image_D):
-        
-        """
-        moze wyszukiwac tylko w diagonalnej cwiartce (numer cwiartki jest zapisany jako zmienna mapper)
-        chodzi o to ze bierze range blocki z image_R ale szuka im odpowiadajacych w image_D
-        """
-
-        MAX_ERROR = float('inf')
-
-        #calculating number of R and D blocks
-        R_number = [image_R.block_number_x(R_size) , image_R.block_number_y(R_size)]
-        D_number = [image_D.block_number_x(2*R_size) , image_D.block_number_y(2*R_size)]
-        # getting full list of D blocks (so D blocks doesn't hae to be calculated multiple times )
-        D_list = get_D_blocks(image_D,D_number,R_size)
-
-        transform_list = []
-        iteracja = 0
-        for R_x in range(0,R_number[0]):
-            print "Iteracja nr", iteracja
-            iteracja+=1
-            transform_list.append([])
-            for R_y in range (0,R_number[1]):
-                R = image_R.blockR(R_y,R_x,R_size)
-                transform_list[R_x].append({'E': MAX_ERROR})
-                for D_x in range(0,D_number[0]):
-                    for D_y in range (0,D_number[1]):
-                        for T_type in range(7):
-                            Res = DCT.compare(R,transform(D_list[D_x][D_y],T_type))
-                            if Res['E'] < transform_list[R_x][R_y]['E']:
-                                transform_list[R_x][R_y] = Res 
-                                transform_list[R_x][R_y]['x'] = D_x
-                                transform_list[R_x][R_y]['y'] = D_y  #uwzglednic cwiartki we wspolrzednych! albo teraz albo pozniej!
-                                transform_list[R_x][R_y]['t'] = T_type
-        print transform_list  
-        return transform_list
+    def compare_best(self,R,list_to_compare,D_list):
+        best = {'E':float('inf')}
+        for match in list_to_compare:
+            D = self.transform(D_list[match['x']][match['y']],match['t'])
+            params = self.compare(R,D)  
+            if params['E'] < best['E']:      
+                best = params 
+                best['x'] = match['x']
+                best['y'] = match['y']
+                best['t'] = match['t']
+        return best
 
     def get_D_blocks(self,image,D_number,R_size):
         D_list = []
-        for D_x in range(0,D_number[0]):
+        for D_y in range(0,D_number[0]):
             D_list.append([])
-            for D_y in range (0,D_number[1]):
-                D = image.blockD(D_y,D_x,R_size)
+            for D_x in range (0,D_number[1]):
+                D = image.blockD(D_x,D_y,R_size)
                 D = self.average(D)
-                D_list[D_x].append(D)
+                D_list[D_y].append(D)
 
         return D_list
 
@@ -196,7 +169,7 @@ class fractal:
         for iteration in range(0,2):
             for i in range(Base.shape[0]/blockSize):
                 for j in range(Base.shape[0]/blockSize):
-                    Base[blockSize*i:blockSize*(i+1),blockSize*j:blockSize*(j+1)] = (self.transform(self.average(Base[transform_list[i][j]['x']:transform_list[i][j]['x']+2*blockSize,transform_list[i][j]['y']:transform_list[i][j]['y'] + 2*blockSize]),transform_list[i][j]['t']))*transform_list[i][j]['s'] + transform_list[i][j]['o']
+                    Base[blockSize*i:blockSize*(i+1),blockSize*j:blockSize*(j+1)] = (self.transform(self.average(Base[transform_list[i][j]['y']:transform_list[i][j]['y']+2*blockSize,transform_list[i][j]['x']:transform_list[i][j]['x'] + 2*blockSize]),transform_list[i][j]['t']))*transform_list[i][j]['s'] + transform_list[i][j]['o']
         
         img = Image.fromarray(numpy.uint8(numpy.matrix(Base)))
         img.save('lena_frac.pgm')
