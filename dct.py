@@ -1,38 +1,32 @@
 from scipy.fftpack import dct , idct
 import numpy as np
 
+class DCT:
+	"""
+		Wrapper class for scipy.fftpack.dct/idct
+	"""
+	def perform(self,block_list):
+		dct_list = []
+		for block in block_list:
+			dct_list.append(dct(block,type=3,norm='ortho'))
+		return dct_list
 
-def calculate_DCT(mat_list):
-	ans = []
-	for mat in mat_list:
-		ans.append(dct(mat,type=3,norm='ortho'))
-	return ans
-def reverse_DCT(DCT_LIST):
-	ans = []
-	for dct in DCT_LIST:
-		ans.append(idct(dct,type=3,norm='ortho'))
-	return ans
+	def reverse(self,DCT_LIST):
+		block_list = []
+		for dct in DCT_LIST:
+			block_list.append(idct(dct,type=3,norm='ortho'))
+		return block_list
 
-def compare_DCT(R,D):
-	diff = 0.0 
-	R_DCT = dct(R,type=3,norm='ortho')
-	D_DCT = dct(D,type=3,norm='ortho')
+	def compare(self,R,D):
+		diff = 0.0 
+		R_DCT = dct(R,type=3,norm='ortho')
+		D_DCT = dct(D,type=3,norm='ortho')
 
-	for i in range(len(R_DCT)):
-		for j in range(len(R_DCT[0])):
-			diff += abs(R_DCT[i,j] - D_DCT[i,j])
+		for i in range(len(R_DCT)):
+			for j in range(len(R_DCT[0])):
+				diff += abs(R_DCT[i,j] - D_DCT[i,j])
 
-	return diff
-
-lista = []
-
-for i in range(3):
-	lista.append(np.arange(16.0).reshape(4,4)-i)
-
-print lista[0]
-
-print compare_DCT(lista[0],lista[1])
-print compare_DCT(lista[1],lista[2])
+		return diff
 
 
 

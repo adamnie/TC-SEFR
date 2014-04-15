@@ -62,12 +62,12 @@ class img(numpy.ndarray):
     
     #poki co bez modulo, ok? 
 
-    def howmanyDinarow(self, Rsize, delta=None):
+    def how_many_D_in_a_row(self, Rsize, delta=None):
         if (delta == None):
             delta = Rsize
         return (self.width() - 2*Rsize)/delta + 1
 
-    def howmanyDinacolumn(self, Rsize, delta=None):
+    def how_many_D_in_a_column(self, Rsize, delta=None):
         if (delta == None):
             delta = Rsize
         return (self.height() - 2*Rsize)/delta + 1
@@ -79,7 +79,7 @@ class img(numpy.ndarray):
     # x and y are numbers (indexes) of block D, assuming Dsize=2*Rsize and step=delta
 
     def blockD(self, x, y, Rsize, delta=None): # OVERLAPPING
-        if (x>self.howmanyDinarow(Rsize,delta)-1 or y>self.howmanyDinacolumn(Rsize,delta)-1):
+        if (x>self.how_many_D_in_a_row(Rsize,delta)-1 or y>self.how_many_D_in_a_column(Rsize,delta)-1):
             print "Blad indeksowania D!!!"
             return -1
         if (delta == None):
@@ -109,6 +109,9 @@ class R_block(img):
 
 # class for D_block for special operations
 class D_block(img):
+
+    def __init__(self,*args):
+        img.__init__(self,*args)
 
     def plot(self): # overriding inherited plot by one with no interpolation
         plt.imshow(self, cmap=plt.cm.gray, interpolation='none', norm=plt.Normalize(0,255)) # bez normalizacji normalizuje do max i min z self
