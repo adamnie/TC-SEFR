@@ -27,11 +27,11 @@ class img(numpy.ndarray):
     def printsize(self):
         print "Image size: height " + str(self.height()) + ", width: " + str(self.width())
 
-    def checksize(self):
-        if (image.height()%(2*Rsize) != 0 or image.width()%(2*Rsize) != 0):   # Checking if our image can be divided into block without rest
-            image = image[1:len(image)-image.height()%(2*Rsize)] # If not, cropping from down right corner
-            for line in image:
-                line = line[1:len(image)-image.width()%(2*Rsize)]
+    def checksize(self, Rsize):
+        if (self.height()%(2*Rsize) != 0 or self.width()%(2*Rsize) != 0):   # Checking if our self can be divided into block without rest
+            self = self[1:len(self)-self.height()%(2*Rsize)] # If not, cropping from down right corner
+            for line in self:
+                line = line[1:len(self)-self.width()%(2*Rsize)]
     
     # plots normalized image in grayscale
     def plot(self): #in grayscale
@@ -45,7 +45,7 @@ class img(numpy.ndarray):
     # can be used to zooming with plot()!
     def cutsquare(self, x, y, size): # x i y sa w pikselach
         crop1 = self[y:y+size] # przyciecie pozadanej ilosci wierszy tabeli, czyli przyciecie wertykalne (y)
-        crop2 = numpy.zeros(shape=(size,size))
+        crop2 = np.zeros(shape=(size,size))
         for index in range(size):
             crop2[index] = (crop1[index])[x:x+size]  #przyciecie pozadanej ilosci elementow w wierszu, czyli przyciecie horyzontalne (x)
         return crop2.view(img)
@@ -85,7 +85,15 @@ class img(numpy.ndarray):
         if (delta == None):
             delta = Rsize
         sth = self.cutsquare(x*delta,y*delta,2*Rsize)
+        #zapomnialem wczesniej o usrednieniu!!!!
         return sth.view(D_block)
+
+    def meanbyfour(self, Rsize):
+        sth_= np.zeros(shape=(Rsize,Rsize))
+        for y in range(Rsize):
+            for x in range(Rsize):
+                sth_[y][x] = self[2*y:2*(y+1),2*x:2*(x+1)].mean()
+        return sth_.view(D_block)
 
     def block_number_x(self,blocksize):
         return self.width()/blocksize

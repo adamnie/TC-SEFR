@@ -122,13 +122,14 @@ class fractal:
                 best['t'] = match['t']
         return best
 
-    def get_D_blocks(self,image,D_number,R_size):
+    def get_D_blocks(self,image,D_number,R_size,delta=None,avg=True):
         D_list = []
         for D_y in range(0,D_number[0]):
             D_list.append([])
             for D_x in range (0,D_number[1]):
-                D = image.blockD(D_x,D_y,R_size)
-                D = self.average(D)
+                D = image.blockD(D_x,D_y,R_size,delta)
+                if avg==True:             # if avg == True, returns R_size x R_size
+                    D = self.average(D)   # if avg == False, returns 2*R_size x 2*R_size
                 D_list[D_y].append(D)
 
         return D_list
