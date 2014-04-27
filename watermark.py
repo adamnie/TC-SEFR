@@ -20,7 +20,16 @@ from fractal import *
 from time import *
 import pickle                              # this one allows us to avoid long computation time while debugging: once computed, you can load it from file by setting boolean flag compress
 
-compress = False                            # zmienna ustalajaca czy obliczamy kompresje czy ladujemy juz obliczona z pliku
+compress = True                            # zmienna ustalajaca czy obliczamy kompresje czy ladujemy juz obliczona z pliku
+
+quantization_table = numpy.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
+                                   [12, 13, 14, 19, 26, 58, 60, 55],
+                                   [14, 13, 16, 24, 40, 57, 69, 56],
+                                   [16, 17, 22, 29, 51, 87, 80, 62],
+                                   [18, 22, 37, 56, 68, 109, 103, 77],
+                                   [24, 35, 55, 64, 81, 104, 113, 92],
+                                   [49, 64, 78, 87, 103, 121, 120, 101],
+                                   [72, 92, 95, 98, 112, 100, 103, 99]]);
 
 """
 Phase 1: WELCOME TO THE JUNGLE
@@ -74,6 +83,7 @@ listB = imageB.divide(n)
 for y in range(len(listB)):
     for x in range(len(listB[0])):
         output = DCT.perform(imageB.get(listB[y][x]))   # wykonuje DCT - UWAGA - zmienilem funkcje dct.perform(), tak, zeby nie zapisywala do listy a zwracala bezposrednio!
+        output = output / quantization_table
         imageB.save(output,listB[y][x])                 # nadpisuje otrzymane wspolczynniki DCT na 
 
 imageC = wm_img(image.shiftleft())
@@ -83,7 +93,8 @@ listC = imageC.divide(n)
 
 for y in range(len(listC)):
     for x in range(len(listC[0])):
-        output = DCT.perform(imageC.get(listC[y][x]))
+        output = DCT.perform(imageC.get(listC[y][x])-128) # 128 is offset required for DCT to work faster
+        output = output / quantization_table
         imageC.save(output,listC[y][x])
 
 wspolczynniki.list[0] # lista wspolczynnikow dopasowanych do cwiartki 0
@@ -95,7 +106,8 @@ for q in range(4): #dla kazdej cwiartki
     for i in range(len(listA)/2): 
         for j in range (len(listA)/2): #dla kazdego bloku
 
-            # TUTAJ TRZEBA ZAMIENIC INFORMACJE NA BINARY, SKOMPRESOWAC
+            B_coefficients = get_quantization_coefficients(imageB.get(listB[i][j]))
+            C_coefficients = get_quantization_coefficients(imageC.get(listC[i][j]))
 
             block = wspolczynniki.list[q][i][j] # definiuje blok w macierzy wspolczynnikow
             mapping_block = [ fix["y"] + block["y"] * n , fix["x"] + block["x"] * n] # otrzymuje indeksy pierwszego piksela z bloku w ktorym musze zapisac informacje
