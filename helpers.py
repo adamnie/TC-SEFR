@@ -3,8 +3,10 @@ def replacetwoLSB(n,lsb2,lsb):
 	n = (n & ~1) | lsb
 	return n
 
-def get_quantizaton_coefficients(quant_block):
-	quant_block = round(quant_block)
+def get_quantization_coefficients(quant_block):
+	for y in quant_block:
+		for x in y:
+			x = round(x)
 
 	coefficients = []
 	coefficients.append(quant_block[0,0])

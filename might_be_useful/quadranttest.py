@@ -8,13 +8,21 @@ test = np.arange(64)
 test = np.reshape(test, (8,8))
 test = test.view(blockA)
 
-#print test
 print test
 
 first = test.quadrant(0)
 second = test.quadrant(1)
 third = test.quadrant(2)
 fourth = test.quadrant(3)
+
+up = np.hstack((fourth,first))
+down = np.hstack((third,second))
+concat = np.vstack((up,down))
+
+"""
+print test
+
+
 
 print "Quadrant", first.q
 print first
@@ -27,7 +35,7 @@ print third
 
 print "Quadrant", fourth.q
 print fourth
-"""
+
 
 no=0
 

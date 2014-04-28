@@ -20,7 +20,7 @@ from fractal import *
 from time import *
 import pickle                              # this one allows us to avoid long computation time while debugging: once computed, you can load it from file by setting boolean flag compress
 
-compress = True                            # zmienna ustalajaca czy obliczamy kompresje czy ladujemy juz obliczona z pliku
+compress = False                           # zmienna ustalajaca czy obliczamy kompresje czy ladujemy juz obliczona z pliku
 
 quantization_table = numpy.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
                                    [12, 13, 14, 19, 26, 58, 60, 55],
@@ -80,11 +80,14 @@ imageB = wm_img(image.shiftup())                # nowy obraz przesuniety w gore
 imageB.type = "B"
 listB = imageB.divide(n)
 
+reconstruct=[]
+
 for y in range(len(listB)):
     for x in range(len(listB[0])):
-        output = DCT.perform(imageB.get(listB[y][x]))   # wykonuje DCT - UWAGA - zmienilem funkcje dct.perform(), tak, zeby nie zapisywala do listy a zwracala bezposrednio!
-        output = output / quantization_table
-        imageB.save(output,listB[y][x])                 # nadpisuje otrzymane wspolczynniki DCT na 
+        output = DCT.perform(imageB.get(listB[y][x]))
+        # wykonuje DCT - UWAGA - zmienilem funkcje dct.perform(), tak, zeby nie zapisywala do listy a zwracala bezposrednio!
+        output = np.divide(output,quantization_table).view(wm_img)
+        imageB.view(wm_img).save(output,listB[y][x])                       # nadpisuje otrzymane wspolczynniki DCT na 
 
 imageC = wm_img(image.shiftleft())
 imageC.type = "C"
@@ -94,8 +97,8 @@ listC = imageC.divide(n)
 for y in range(len(listC)):
     for x in range(len(listC[0])):
         output = DCT.perform(imageC.get(listC[y][x])-128) # 128 is offset required for DCT to work faster
-        output = output / quantization_table
-        imageC.save(output,listC[y][x])
+        output = np.divide(output,quantization_table).view(wm_img)
+        imageC.view(wm_img).save(output,listC[y][x])
 
 wspolczynniki.list[0] # lista wspolczynnikow dopasowanych do cwiartki 0
 # przypisuje je do blokow w diagonalnej cwiartce:
@@ -114,3 +117,20 @@ for q in range(4): #dla kazdej cwiartki
             
             # TUTAJ ZA POMOCA FUNKCJI SAVE NALEZY ZAPISAC PO DWA BITY W KAZDYM PIKSELU            
 
+outv = []
+for y in range(len(listC)):
+    outh = np.ndarray(shape=(n,n))
+    for x in range(len(listC)):
+      outh = np.hstack(( outh, imageC.get(listA[y][x]) ))
+    #outh.view(img).plot()
+    outv.append(outh)
+    #print y,
+    del outh
+    #print "Nailed"
+
+print len(outv[0][0])
+out = np.ndarray(shape=(8,264))
+for idx in range(len(outv)):
+  out = np.vstack((out, outv[idx]))
+
+out.view(img).plot()
