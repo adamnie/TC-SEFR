@@ -18,9 +18,10 @@ from helpers import *
 from wm_img import *
 from fractal import *
 from time import *
-import pickle                              # this one allows us to avoid long computation time while debugging: once computed, you can load it from file by setting boolean flag compress
+from embed import *
+import json                              # this one allows us to avoid long computation time while debugging: once computed, you can load it from file by setting boolean flag compress
 
-compress = False                           # zmienna ustalajaca czy obliczamy kompresje czy ladujemy juz obliczona z pliku
+compress = False                          # zmienna ustalajaca czy obliczamy kompresje czy ladujemy juz obliczona z pliku
 
 quantization_table = numpy.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
                                    [12, 13, 14, 19, 26, 58, 60, 55],
@@ -59,12 +60,14 @@ imageA.type = "A"                           # ustalanie typu obiektu, automatycz
 listA = imageA.divide(n)                    # dzielenie na bloki n x n, zapisanie w tablicy INDEKSOW tych blokow (patrz wm_img.divide())   
 
 for i in range(4):
+    nazwa = "wspolczynniki" + str(i) + "_new.json"
     if (not compress):  # ladowanie z pliku
-        if i==0: print "Loading previously calculated watermark data..."
-        nazwa = "wspolczynniki" + str(i) + "_new.pickle"
+        if i==0: 
+          print "Loading previously calculated watermark data..."
         with open(nazwa, 'rb') as handle:
-            wspolczynniki.list[i] = pickle.load(handle)
-    else:               # kompresja
+            wspolczynniki.list[i] = json.load(handle)
+    else:
+        json_file = open(nazwa, 'wb')               # kompresja
         start=time()
         mapper_nr=imageA.quadrant_attr[i]["mapper"]
         wspolczynniki.list[i] = fractal.compression(
@@ -72,6 +75,8 @@ for i in range(4):
            imageA.quadrant(i), 
            imageA.quadrant(mapper_nr)
            )
+        json.dump(wspolczynniki.list[i],json_file)
+        json_file.close()
 
 # teraz, obiekt wspolczynniki.list zawiera wszystkie wspolczynniki kodowania fraktalnego.
 # odwolujemy sie do niego wspolczynniki.list[cwiartka bazowa][indeks y][indeks x]
@@ -84,7 +89,7 @@ reconstruct=[]
 
 for y in range(len(listB)):
     for x in range(len(listB[0])):
-        output = DCT.perform(imageB.get(listB[y][x]))
+        output = DCT.perform(imageB.get(listB[y][x])-128)
         # wykonuje DCT - UWAGA - zmienilem funkcje dct.perform(), tak, zeby nie zapisywala do listy a zwracala bezposrednio!
         output = np.divide(output,quantization_table).view(wm_img)
         imageB.view(wm_img).save(output,listB[y][x])                       # nadpisuje otrzymane wspolczynniki DCT na 
@@ -102,35 +107,46 @@ for y in range(len(listC)):
 
 wspolczynniki.list[0] # lista wspolczynnikow dopasowanych do cwiartki 0
 # przypisuje je do blokow w diagonalnej cwiartce:
+error_count = 0
+good_count = 0
 
 for q in range(4): #dla kazdej cwiartki
     mapper_nr=imageA.quadrant_attr[q]["mapper"] # znajduje jej cwiartke mapujaca
     fix = {"x" : imageA.quadrant_attr[mapper_nr]["x"], "y" : imageA.quadrant_attr[mapper_nr]["y"]}  # zapisuje piksele naprawiajace wspolrzedne 
     for i in range(len(listA)/2): 
         for j in range (len(listA)/2): #dla kazdego bloku
-
             B_coefficients = get_quantization_coefficients(imageB.get(listB[i][j]))
             C_coefficients = get_quantization_coefficients(imageC.get(listC[i][j]))
 
             block = wspolczynniki.list[q][i][j] # definiuje blok w macierzy wspolczynnikow
-            mapping_block = [ fix["y"] + block["y"] * n , fix["x"] + block["x"] * n] # otrzymuje indeksy pierwszego piksela z bloku w ktorym musze zapisac informacje
-            
-            # TUTAJ ZA POMOCA FUNKCJI SAVE NALEZY ZAPISAC PO DWA BITY W KAZDYM PIKSELU            
+            mapping_block = {
+              "y1": fix["y"] + block["y"] * n,
+              "y2": fix["y"] + block["y"] * n+8,
+              "x1":fix["x"] + block["x"] * n,
+              "x2":fix["x"] + block["x"] * n+8,
+            }
 
-outv = []
-for y in range(len(listC)):
-    outh = np.ndarray(shape=(n,n))
-    for x in range(len(listC)):
-      outh = np.hstack(( outh, imageC.get(listA[y][x]) ))
-    #outh.view(img).plot()
-    outv.append(outh)
-    #print y,
-    del outh
-    #print "Nailed"
+            block_to_be_watermarked = imageA.get(mapping_block)
+            watermarked_block = embed_watermark(block_to_be_watermarked,block,B_coefficients,C_coefficients)
+            watermarked_block = embed_checksum(watermarked_block)
 
-print len(outv[0][0])
-out = np.ndarray(shape=(8,264))
-for idx in range(len(outv)):
-  out = np.vstack((out, outv[idx]))
+            imageA.save(watermarked_block,mapping_block)
 
-out.view(img).plot()
+            #retrieving data
+
+            ret_block = imageA.get(mapping_block)
+
+            data = retrieve_watermark_and_checksum(ret_block)
+            if errors_occured(ret_block,data):
+              error_count += 1
+            else:
+              good_count += 1
+
+print error_count
+print good_count
+
+
+
+
+
+
