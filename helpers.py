@@ -76,9 +76,9 @@ def compare(R,D):
     o = R_average - s* D_average;
     E = LA.norm(R*(s*D+o))
 
-    Res['E'] = E
-    Res['s'] = s
-    Res['o'] = o
+    Res['E'] = int(E)
+    Res['s'] = int(s)
+    Res['o'] = int(o)
     Res['x'] = -1
     Res['y'] = -1
     Res['t'] = -1
