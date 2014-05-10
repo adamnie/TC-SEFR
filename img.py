@@ -1,126 +1,108 @@
 """
-    img.py
-    Defining classes with all needed methods.
+    Implements img class, which extends np.ndarray object
 """
-
+#imports
 import numpy as np
 from scipy import misc
+from helpers_refurbished import *
 import matplotlib.pyplot as plt
-import numpy
+from PIL import ImageFile
 
-# class for imported image
-class img(numpy.ndarray):
+class img(np.ndarray):
 
-    # initialize
-    def __init__(self, obraz):
-        self.obraz = obraz
+    def __init__(self,stuff):
+      pass
+    def __new__(self,filename):   
+      fp = open(filename,'rb')
 
-    # returns width
-    def width(self): ##former size_horizontal
-        return len(self[1])
+      p = ImageFile.Parser()
 
-    # returns height
-    def height(self): ##former size_vertical
-        return len(self)
+      while True :
+        s = fp.read(1024)
+        if not s:
+          break
+        p.feed(s)
 
-    # prints verbose size
-    def printsize(self):
-        print "Image size: height " + str(self.height()) + ", width: " + str(self.width())
-
-    def checksize(self, Rsize):
-        if (self.height()%(2*Rsize) != 0 or self.width()%(2*Rsize) != 0):   # Checking if our self can be divided into block without rest
-            self = self[1:len(self)-self.height()%(2*Rsize)] # If not, cropping from down right corner
-            for line in self:
-                line = line[1:len(self)-self.width()%(2*Rsize)]
+      im = p.close()
+      pixels = np.asarray(im)
     
-    # plots normalized image in grayscale
-    def plot(self): #in grayscale
-        plt.imshow(self, cmap=plt.cm.gray, norm=plt.Normalize(0,255))
-        plt.show()
+      return pixels.view(img)
 
-    # exports image to file
+    def save_block(self,new_block,coords):
+      size = len(new_block)
+      for x in range(size):
+        for y in range(size):
+          self[coords['x']+x][coords['y']+y] = new_block[x][y]
+
     def export(filename):
-        misc.imsave(filename,self)
+      misc.imsave(filename,self)# check this command
 
-    # can be used to zooming with plot()!
-    def cutsquare(self, x, y, size): # x i y sa w pikselach
-        crop1 = self[y:y+size] # przyciecie pozadanej ilosci wierszy tabeli, czyli przyciecie wertykalne (y)
-        crop2 = np.zeros(shape=(size,size))
-        for index in range(size):
-            crop2[index] = (crop1[index])[x:x+size]  #przyciecie pozadanej ilosci elementow w wierszu, czyli przyciecie horyzontalne (x)
-        return crop2.view(img)
-   
-    # sets R block of size=Rsize and number [h,v] 
-    # e.g. when you have 512x512 image and Rsize=4, you have 128x128 R blocks
-    # img.blockR(0,0) returns first ([0,0]), img.blockR(0,1) returns second ([0,1])...
-    # that goes to img.blockR(127,127) which returns lower right corner (last block)
-    # warning: to be consistent, D blocks are 0-indexed!
+    def plot(self):
+      black = 0
+      white = 255
+      plt.imshow(self, cmap = plt.cm.gray, norm=plt.Normalize(black,white))
+      plt.show()
 
-    def blockR(self, x, y, Rsize):   # NON-OVERLAPPING
-        sth = self.cutsquare(x*Rsize,y*Rsize,Rsize)
-        return sth.view(R_block)
-    
-    #poki co bez modulo, ok? 
+    def shift_up(self,shift_amount=4):
+      return np.roll(self,-shift_amount,axis=0)
 
-    def how_many_D_in_a_row(self, Rsize, delta=None):
-        if (delta == None):
-            delta = Rsize
-        return (self.width() - 2*Rsize)/delta + 1
+    def shift_left(self,shift_amount=4):
+      return np.roll(self,-shift_amount,axis=1)
 
-    def how_many_D_in_a_column(self, Rsize, delta=None):
-        if (delta == None):
-            delta = Rsize
-        return (self.height() - 2*Rsize)/delta + 1
+    def cut_block(self,x,y,size):
+      horizontal = self[x:x+size]
+      #initialiing empy block with proper shape
+      block = np.zeros(shape=(size,size))
+      for col in range(size):
+          block[col] = (horizontal[col])[y:y+size]
+      return block.view(img)
 
-
-    # size of block D is 2x size of block R
-    # as an argument we pass the same Rsize as to block R! it is multiplied inside the function
-    # delta is the step of selecting next image, default it's equal to Rsize 
-    # x and y are numbers (indexes) of block D, assuming Dsize=2*Rsize and step=delta
-
-    def blockD(self, x, y, Rsize, delta=None): # OVERLAPPING
-        if (x>self.how_many_D_in_a_row(Rsize,delta)-1 or y>self.how_many_D_in_a_column(Rsize,delta)-1):
-            print "Blad indeksowania D!!!"
-            return -1
-        if (delta == None):
-            delta = Rsize
-        sth = self.cutsquare(x*delta,y*delta,2*Rsize)
-        #zapomnialem wczesniej o usrednieniu!!!!
-        return sth.view(D_block)
-
-    def meanbyfour(self, Rsize):
-        sth_= np.zeros(shape=(Rsize,Rsize))
-        for y in range(Rsize):
-            for x in range(Rsize):
-                sth_[y][x] = self[2*y:2*(y+1),2*x:2*(x+1)].mean()
-        return sth_.view(D_block)
+    def get_block(self,coords,size=8):
+      return self.cut_block(coords['x'],coords['y'],size)
 
     def block_number_x(self,blocksize):
-        return self.width()/blocksize
+      return self.width()/blocksize
 
     def block_number_y(self,blocksize):
-        return self.width()/blocksize
+      return self.height()/blocksize
 
-    def shiftup(self,x=4):
-        return np.roll(self,-x,axis=0)
+    def width(self):
+      return len(self[1])
 
-    def shiftleft(self,x=4):
-        return np.roll(self,-x,axis=1)
+    def height(self):
+      return len(self)
 
+    def how_many_D_in_a_row(self, R_size, delta=None):
+      if delta == None :
+        delta = R_size
+      return (self.width() - 2 * R_size) / delta + 1
 
-# class for R_block for special operations
-class R_block(img):
+    def how_many_D_in_a_column(self, R_size, delta=None):
+      if delta == None :
+        delta = R_size
+      return (self.height() - 2*R_size) / delta + 1
 
-    def plot(self): # overriding inherited plot by one with no interpolation
-        plt.imshow(self, cmap=plt.cm.gray, interpolation='none', norm=plt.Normalize(0,255)) # bez normalizacji normalizuje do max i min z self
-        plt.show(block=True)
+    def block_R(self, x, y, R_size):
+      R_block = self.cut_block(x*R_size,y*R_size,R_size)
+      return R_block.view()
 
-# class for D_block for special operations
-class D_block(img):
+    def block_D(self, x, y, R_size, delta=None):
+      if (x>self.how_many_D_in_a_row(R_size,delta) or y>self.how_many_D_in_a_column(R_size,delta)):
+          pass
+          print "Indexing D_block error!"
+          return -1
+      if (delta == None):
+          delta = R_size
+      returnBlock = self.cut_block(x*delta,y*delta,2*R_size)
+      return returnBlock.view(img)
+    def get_D_blocks(self,D_number,R_size,delta=None,average=True):
+      D_list = []
+      for D_x in range(0,D_number[0]-1):
+            D_list.append([])
+            for D_y in range (0,D_number[1]-1):
+                D = self.block_D(D_x,D_y,R_size,delta)
+                if average == True:           # if avg == True, returns R_size x R_size
+                    D = mean_by_four(D)   # if avg == False, returns 2*R_size x 2*R_size
+                D_list[D_x].append(D)
 
-    def __init__(self,*args):
-        img.__init__(self,*args)
-
-    def plot(self): # overriding inherited plot by one with no interpolation
-        plt.imshow(self, cmap=plt.cm.gray, interpolation='none', norm=plt.Normalize(0,255)) # bez normalizacji normalizuje do max i min z self
-        plt.show(block=True)
+      return D_list
