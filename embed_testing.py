@@ -1,138 +1,20 @@
-from fractal import *
-from wm_img import *
-from helpers import *
+from embed import *
 import numpy as np
-import math
-import md5
+d = {}
+d['x'] = 30
+d['y'] = 14
+d['t'] = 4
+d['s'] = -24
+d['o'] = 18
 
-BITS_FOR_CHECKSUM = 16
+B = [1,20,3,54,6,3]
+C = [1,2,3,25,6,3]
 
-"""
-	A blocks: x(7) + y(7) + t(3) + s(7) + o(8)
-	B blocks: 40 bits quantzation table
-	C blocks: 40 bits quantization table
-	Checksum: 16 bits
+block = np.arange(64).reshape([8,8])
+block2 = np.arange(121).reshape([11,11])
+wm_block = embed_watermark(block,d,B,C)
+checked_block = embed_checksum(wm_block)
+data = retrieve_watermark_and_checksum(checked_block)
+print errors_occured(checked_block,data)
 
-	========
-	128 bits
-
-	1) convert information into structure in which all data will be binary
-	2) Divide binary data in a consistent way
-	3) Clean bits
-	4) Embed binary data
-	5) retrieve binary data
-
-	TO DO:
-	make converting functions dependent on the size of x and y
-	case when scale or offset might be < 0
-	bin operations should be done with masks
-
-"""
-
-def to_bin_str(A_blocks,B_blocks,C_blocks):
-	"""
-		Converts data from A,B,C blocks and checksum into 1 112 bits long 
-		string (len(string) == 112)
-	"""
-	x = "{0:07b}".format(A_blocks['x'])
-	y = "{0:07b}".format(A_blocks['y'])
-	t = "{0:03b}".format(A_blocks['t'])	
-	s = "{0:07b}".format(A_blocks['s'])
-	if A_blocks['s'] < 0:
-		s[0] = 1
-	o = "{0:08b}".format(A_blocks['o'])
-	if A_blocks['o'] < 0:
-		o[0] = 1
-
-	B = "{0:040b}".format(B_blocks)
-	C = "{0:040b}".format(C_blocks)
-
-
-	return x + y + t + s + o + B + C
-
-def to_data(bin_string):
-
-	"""
-		Retrieves data from binary string:
-		- transform list (A blocks) 32 bits
-		- JPEG like data (B and C blocks) each 40 bits
-		- checksum 16 bits
-	"""
-	watermark_data = []
-	transform = {}
-	transform['x'] = int(bin_string[:7],2)
-	transform['y'] = int(bin_string[7:14],2)
-	transform['t'] = int(bin_string[14:17],2)
-	transform['s'] = int(bin_string[17:24],2)
-	transform['o'] = int(bin_string[24:32],2)
-	watermark_data.append(transform)
-
-	B_blocks = int(bin_string[32:72],2)
-	C_blocks = int(bin_string[72:112],2)
-	watermark_data.append(B_blocks)
-	watermark_data.append(C_blocks)
-
-	checksum = int(bin_string[112:128],2)
-	watermark_data.append(checksum)
-
-	return watermark_data
-
-def embed_watermark(block,A_blocks_data,B_blocks_data=0,C_blocks_data=0):
-	"""
-		Inserts data from 3 block types and checksum into 2 last bits of every pixel(grey scale)
-		and returns watermarked block (type numpy.array)
-	"""
-	bin_watermark_data = to_bin_str( A_blocks_data, B_blocks_data, C_blocks_data)
-	size = int(math.sqrt(block.size))
-	watermarked_block = np.empty([size,size])
-
-	for i in range(size):
-		for j in range(size-BITS_FOR_CHECKSUM/2):
-			pixel = block[i,j] - block[i,j] % 4 # seting 2 last bit to 0
-			watermarked_block[i,j] = pixel + int(bin_watermark_data[2*(i*size+j):2*(i*size+j+1)],2) # seting 2 last bits to those from watermark
-	return watermarked_block
-		
-
-def retrive_watermark_and_checksum(watermarked_block):
-	"""
-		Retrieves data from watermarked image, then converts it from binary to decimal
-	"""
-	size = int(math.sqrt(watermarked_block.size)) # .size returns all elements, and my size should define length of block in either x or y dimension
-	bin_watermark_data = ""
-
-	for i in range(size):
-		for j in range(size):
-			bin_watermark_data += "{0:02b}".format(int(watermarked_block[i,j]) % 4)
-	watermark_data = to_watermark_data(bin_data)
-	return 	watermark_data
-
-def checksum(block):
-	"""
-		Calculates md5 hash for whole block with
-		exception of last 8 bits (where cheksum data will be embedded)
-	"""
-	checksum = md5.new()
-
-	for i in range(size):
-		for j in range(size-BITS_FOR_CHECKSUM/2):
-			checksum.update(block[i,j])
-
-	return checksum.digest()
-
-def embed_checksum(block,checksum):
-	bin_checksum = {"0:016b"}.format(checksum)
-
-	for i in range(size):
-		block[size-1,i] = block[size-1,i] - block[size-1,i] % 4
-		block[size-1,i] += int(bin_checksum[2*i:2*(i+1)])
-
-	return block
-
-def errors_occured(block,watermark_data):
-	retrieved_checksum = checksum(block)
-	original_checksum = watermark_data[3]
-
-	if retrieved_checksum == original_checksum:
-		return False
-	else:
-		return True
+print checksum(block2)

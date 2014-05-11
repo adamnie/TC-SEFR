@@ -43,14 +43,20 @@ def to_bin_str(A_blocks,B_blocks,C_blocks):
 	s = "{0:+06b}".format(int(A_blocks['s'])).replace('+','0').replace('-','1')
 	o = "{0:+09b}".format(int(A_blocks['o'])).replace('+','0').replace('-','1')
 
-	for i in range(6):
-		B += "{0:+06b}".format(int(B_blocks[i])).replace('+','0').replace('-','1')
-		C += "{0:+06b}".format(int(C_blocks[i])).replace('+','0').replace('-','1')
-	B += '0000'
-	C += '0000'
-	B = B[:40]
-	C = C[:40]
+	B += "{0:08b}".format(int(B_blocks[0]))
+	B += "{0:07b}".format(int(B_blocks[1]))
+	B += "{0:07b}".format(int(B_blocks[2]))
+	B += "{0:05b}".format(int(B_blocks[3]))
+	B += "{0:06b}".format(int(B_blocks[4]))
+	B += "{0:07b}".format(int(B_blocks[5]))
 
+	C += "{0:08b}".format(int(C_blocks[0]))
+	C += "{0:07b}".format(int(C_blocks[1]))
+	C += "{0:07b}".format(int(C_blocks[2]))
+	C += "{0:05b}".format(int(C_blocks[3]))
+	C += "{0:06b}".format(int(C_blocks[4]))
+	C += "{0:07b}".format(int(C_blocks[5]))
+		
 	return x + y + t + s + o + B + C
 
 
@@ -73,20 +79,30 @@ def to_data(bin_string):
 
 	if bin_string[17] == '1':
 		transform['s'] *= -1
+		
 	transform['o'] = int(bin_string[24:32],2)
 	if bin_string[23] == '1':
 		transform['o'] *= -1
 	watermark_data.append(transform)
 
-	for i in range(6):
-		B_blocks.append(int(bin_string[32+6*i:32+6*(i+1)],2))
-		C_blocks.append(int(bin_string[72+6*i:72+6*(i+1)],2))
+	B_blocks.append(int(bin_string[32:39],2))
+	B_blocks.append(int(bin_string[39:47],2))
+	B_blocks.append(int(bin_string[47:54],2))
+	B_blocks.append(int(bin_string[54:59],2))
+	B_blocks.append(int(bin_string[59:65],2))
+	B_blocks.append(int(bin_string[65:72],2))
 	watermark_data.append(B_blocks)
+
+	C_blocks.append(int(bin_string[72:80],2))
+	C_blocks.append(int(bin_string[80:87],2))
+	C_blocks.append(int(bin_string[87:94],2))
+	C_blocks.append(int(bin_string[94:99],2))
+	C_blocks.append(int(bin_string[99:105],2))
+	C_blocks.append(int(bin_string[105:112],2))
 	watermark_data.append(C_blocks)
 
 	checksum = int(bin_string[112:128],2)
 	watermark_data.append(checksum)
-
 
 	return watermark_data
 

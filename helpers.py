@@ -1,6 +1,8 @@
 import numpy as np
 from numpy import linalg as LA 
 
+MAX_S = 32 
+MAX_O = 256
 
 def mean_by_four(block):
   """
@@ -19,12 +21,12 @@ def get_quantization_coefficients(quant_block):
             y = round(y)
 
     coefficients = []
-    coefficients.append(quant_block[0,0])
-    coefficients.append(quant_block[0,1])
-    coefficients.append(quant_block[1,0])
-    coefficients.append(quant_block[2,0])
-    coefficients.append(quant_block[1,1])
-    coefficients.append(quant_block[0,2])
+    coefficients.append(normalize(quant_block[0,0]),256)
+    coefficients.append(normalize(quant_block[0,1]),128)
+    coefficients.append(normalize(quant_block[1,0]),128)
+    coefficients.append(normalize(quant_block[2,0]),32)
+    coefficients.append(normalize(quant_block[1,1]),64)
+    coefficients.append(normalize(quant_block[0,2]),128)
 
     return coefficients
 
@@ -66,6 +68,7 @@ def compare(R,D):
     E(R, D) = norm(R - (s*D + o*U))
 
     lowest E defines best match
+    
     """
 
     Res = {}
@@ -74,13 +77,26 @@ def compare(R,D):
     D_average = D.mean();
     s = (np.array(R-R_average)*np.array(D-D_average)).sum() / (np.array(D-D_average)*np.array(D-D_average)).sum()
     o = R_average - s* D_average;
+    s = normalize(s,MAX_S)
+    o = normalize(o,MAX_O)
+
     E = LA.norm(R*(s*D+o))
 
     Res['E'] = int(E)
-    Res['s'] = int(s)
-    Res['o'] = int(o)
+    Res['s'] = s
+    Res['o'] = o
     Res['x'] = -1
     Res['y'] = -1
     Res['t'] = -1
 
     return Res
+
+def normalize(number, max_value):
+  if number < 0 :
+    number *= -1
+    number = number % max_value
+    number *= -1
+  else:
+    number = number % max_value
+
+    return number  

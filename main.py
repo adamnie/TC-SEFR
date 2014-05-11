@@ -92,7 +92,12 @@ for x in range(len(listC)):
 # imageB.plot()
 # imageC.plot()     
 
-block_is_correct = np.zeros([len(listA),len(listA)])
+checksum_is_correct = np.zeros([len(listA),len(listA)])
+
+A_type_is_ok = np.zeros([len(listA),len(listA)])
+B_type_is_ok = np.zeros([len(listB),len(listB)])
+C_type_is_ok = np.zeros([len(listC),len(listC)])
+
 blocks_in_quad = len(listA)/2
 
 #saving compression data in the image
@@ -122,29 +127,31 @@ for quadrant in range(4):
       imageA.save_block(watermarked_block,{'x':i_quad,'y':j_quad})
 
 # imageA.plot() 
+ret_comp_data = []
 
 for quadrant in range(4):
   mapper_q = imageA.quadrant_attr[quadrant]['mapper']
   mapper_offset = {'x': imageA.quadrant_attr[mapper_q]['x'], 'y': imageA.quadrant_attr[mapper_q]['y'] } 
   quadrant_offset = {'x': imageA.quadrant_attr[quadrant]['x'], 'y': imageA.quadrant_attr[quadrant]['y'] }
-
+  ret_comp_data.append([])
   for i in range(blocks_in_quad):
+    ret_comp_data[quadrant].append([])
     for j in range(blocks_in_quad):  
-
+      ret_comp_data[quadrant][i].append([])
       i_quad = i + quadrant_offset['x'] / R_block_size
       j_quad = j + quadrant_offset['y'] / R_block_size
 
       block = imageA.get_block({'x':i_quad,'y':j_quad})
-
-      ret_comp_data = retrieve_watermark_and_checksum(block)
-
-      if errors_occured(block,ret_comp_data[3]):
-        block_is_correct[i_quad][j_quad] = 1
+      ret_comp_data[quadrant][i][j].append(retrieve_watermark_and_checksum(block))
+      print ret_comp_data[quadrant][i][j]
+      if errors_occured(block,ret_comp_data[quadrant][i][j][0][3]):
+        checksum_is_correct[i_quad][j_quad] = 1
       else:
-        block_is_correct[i_quad][j_quad] = -1 
+        checksum_is_correct[i_quad][j_quad] = -1 
 
-print block_is_correct      
+print checksum_is_correct      
 
+# checking a blocks info
 for quadrant in range(4):
   mapper_q = imageA.quadrant_attr[quadrant]['mapper']
   mapper_offset = {'x': imageA.quadrant_attr[mapper_q]['x'], 'y': imageA.quadrant_attr[mapper_q]['y'] } 
@@ -166,16 +173,102 @@ for quadrant in range(4):
       comp_data[0]['x'] /= R_block_size
       comp_data[0]['y'] /= R_block_size
 
-      if block_is_correct[i_quad][j_quad] and block_is_correct[comp_data[0]['x']][comp_data[0]['y']]:
+      if checksum_is_correct[i_quad][j_quad] and checksum_is_correct[comp_data[0]['x']][comp_data[0]['y']]:
         mapping_block = imageA.get_block(comp_data[0])
-        
         recalculated_data = compare(block,mapping_block)
-        print int(recalculated_data['o']) 
-        print comp_data[0]['o']
 
+        if recalculated_data['o'] == comp_data[0]['o'] and recalculated_data['s'] == comp_data[0]['s']:
+          A_type_is_ok[i_quad][j_quad] = 1
+        else:
+          A_type_is_ok[i_quad][j_quad] = -1
 
       else:
-        print "Again smths fucked up"
+          A_type_is_ok[i_quad][j_quad] = 0
+# checking B and C blocks info
+for quadrant in range(4):
+  mapper_q = imageA.quadrant_attr[quadrant]['mapper']
+  mapper_offset = {'x': imageA.quadrant_attr[mapper_q]['x'], 'y': imageA.quadrant_attr[mapper_q]['y'] } 
+  quadrant_offset = {'x': imageA.quadrant_attr[quadrant]['x'], 'y': imageA.quadrant_attr[quadrant]['y'] }
 
+  for i in range(blocks_in_quad):
+    for j in range(blocks_in_quad):
+      B_correct = True
+      C_correct = True
+
+      i_quad = i + quadrant_offset['x'] / R_block_size
+      j_quad = j + quadrant_offset['y'] / R_block_size
+
+      blockA = imageA.get_block({'x':i_quad,'y':j_quad})
+      blockB = imageB.get_block({'x':i_quad,'y':j_quad})
+      blockC = imageC.get_block({'x':i_quad,'y':j_quad})
+
+      data = retrieve_watermark_and_checksum(blockA)
+
+      B_dct_coef = get_quantization_coefficients(DCT.perform(blockB-128))
+      C_dct_coef = get_quantization_coefficients(DCT.perform(blockC-128))
+
+      for i in range(6):
+        if B_dct_coef[i] != data[1][i]:
+          B_correct = False
+        if C_dct_coef[i] != data[2][i]:
+          C_correct = False
+
+      if B_correct:
+        B_type_is_ok[i_quad][j_quad] = 1
+      else: 
+        B_type_is_ok[i_quad][j_quad] = -1
+
+      if C_correct:
+        C_type_is_ok[i_quad][j_quad] = 1
+      else: 
+        C_type_is_ok[i_quad][j_quad] = -1
+
+
+## Adding all detections data to decide whether block is damaged or not
+# weights
+w_check = 1
+# weights in deciding whethere img was damaged
+w_A = 1
+w_B = 1
+w_C = 1
+#weights for reconstruction
+weight_A = np.zeros([len(listA),len(listA)])
+weight_B = np.zeros([len(listB),len(listB)])
+weight_C = np.zeros([len(listC),len(listC)])
+
+detection = w_check*checksum_is_correct + w_A*A_type_is_ok + w_B*B_type_is_ok + w_C*C_type_is_ok
+
+# reconstruction prep
+
+for quadrant in range(4):
+  mapper_q = imageA.quadrant_attr[quadrant]['mapper']
+  mapper_offset = {'x': imageA.quadrant_attr[mapper_q]['x'], 'y': imageA.quadrant_attr[mapper_q]['y'] } 
+  quadrant_offset = {'x': imageA.quadrant_attr[quadrant]['x'], 'y': imageA.quadrant_attr[quadrant]['y'] }
+
+  for i in range(blocks_in_quad):
+    for j in range(blocks_in_quad):
+      coords = {}
+      i_quad = i + quadrant_offset['x'] / R_block_size
+      j_quad = j + quadrant_offset['y'] / R_block_size 
+      coords['x'] = i_quad
+      coords['y'] = j_quad     
+
+      if detection[i_quad][j_quad] > 0:
+        print "block is ok proceeding..."
+      else:
+        print "block may be damaged, reconstruction started ..."
+
+        if A_type_is_ok[i_quad][j_quad]:
+          weight_A[i_quad][j_quad] = 1
+          block_A_rec = reconstruct.fromA()
+          imageA.save_block(block_A_rec,coords)
+        elif B_type_is_ok[i_quad][j_quad]:
+          weight_B[i_quad][j_quad] = 1
+          block_B_rec = reconstruct.fromB()
+          imageB.save_block(block_B_rec,coords)
+        elif C_type_is_ok[i_quad][j_quad]:
+          weight_C[i_quad][j_quad] = 1
+          block_C_rec = reconstruct.fromC()
+          imageC.save_block(block_C_rec,coords)
 
 
