@@ -11,9 +11,17 @@ import numpy
 # class for imported image
 class img(numpy.ndarray):
 
+    nazwa = None
+    format = None
+
     # initialize
     def __init__(self, obraz):
         self.obraz = obraz
+        self.format = "abc"
+        self.nazwa = "name"
+
+    def get_nazwa(self):
+        return self.nazwa
 
     # returns width
     def width(self): ##former size_horizontal
@@ -72,6 +80,8 @@ class img(numpy.ndarray):
             delta = Rsize
         return (self.height() - 2*Rsize)/delta + 1
 
+    def resize(self, size):
+        return misc.imresize(self, size, "bilinear", "L")
 
     # size of block D is 2x size of block R
     # as an argument we pass the same Rsize as to block R! it is multiplied inside the function
