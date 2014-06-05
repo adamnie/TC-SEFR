@@ -4,7 +4,7 @@
 #imports
 import numpy as np
 from scipy import misc
-from helpers_refurbished import *
+from lib.helpers import *
 import matplotlib.pyplot as plt
 from PIL import ImageFile
 
@@ -46,8 +46,14 @@ class img(np.ndarray):
     def shift_up(self,shift_amount=4):
       return np.roll(self,-shift_amount,axis=0)
 
+    def shift_down(self,shift_amount=4):
+      return np.roll(self,shift_amount,axis=0)
+
     def shift_left(self,shift_amount=4):
       return np.roll(self,-shift_amount,axis=1)
+    
+    def shift_right(self,shift_amount=4):
+      return np.roll(self,shift_amount,axis=1)
 
     def cut_block(self,x,y,size):
       horizontal = self[x:x+size]

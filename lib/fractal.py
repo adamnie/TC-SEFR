@@ -1,12 +1,6 @@
 import numpy as np 
-from img_refurbished import *
-from dct import *
 import datetime
-
-#constants
-
-MAX_ERROR = float('inf')
-
+from lib.dct import *
 
 class fractal:
 
@@ -14,15 +8,19 @@ class fractal:
   coefficients = [None] * 4
 
   def __new__(self,how_many=5):
-    self.coefficients = [None] * 4
-    self.how_many = how_many    
+    self.coefficients = [None] * 4 # list of coefficients 
+    self.how_many = how_many    # how many best matches should be considered
 
   def compression(self, R_size, image_R, image_D):
+    """
+      Function calulates fractal coeffiecints of transition from R block to D block
+      for the whole image, and returns a list of coefficients
+    """
+
     dct = DCT()
 
     print "Starting compression"
     time = datetime.datetime.now()
-
 
     R_count = [image_R.block_number_y(R_size),image_R.block_number_x(R_size)]
     D_count = [image_D.block_number_y(R_size),image_D.block_number_x(R_size)]       
@@ -55,7 +53,7 @@ class fractal:
 
     return transformation_data_list
 
-  def decompression(self,transform_list,img_size,blockSize):
+  def decompression(self,transform_list,Base,R_block_size):
     """
         img_size should be a matrix ([sizeX,sizeY])
         transform list should be the result of fractal.compression()
@@ -63,16 +61,9 @@ class fractal:
         data found)
     """
 
-    Base = np.zeros(img_size)+127
-
-    print "Starting decompression"
-    time = datetime.datetime.now()
-
     for iteration in range(0,2):
-        for i in range(Base.shape[0]/blockSize):
-            for j in range(Base.shape[0]/blockSize):
-                Base[blockSize*i:blockSize*(i+1),blockSize*j:blockSize*(j+1)] = (transform(average(Base[transform_list[i][j]['x']:transform_list[i][j]['x']+2*blockSize,transform_list[i][j]['y']:transform_list[i][j]['y'] + 2*blockSize]),transform_list[i][j]['t']))*transform_list[i][j]['s'] + transform_list[i][j]['o']
-    
-    image = numpy.uint8(numpy.matrix(Base))
-    print "it took: ", (datetime.datetime.now() - time) 
-    return image
+        for i in range(Base.shape[0]/R_block_size):
+            for j in range(Base.shape[0]/R_block_size):
+                Base[R_block_size*i:R_block_size*(i+1)][R_block_size*j:R_block_size*(j+1)] = (transform(average(Base[transform_list[i][j]['x']:transform_list[i][j]['x']+2*R_block_size][transform_list[i][j]['y']:transform_list[i][j]['y'] + 2*R_block_size]),transform_list[i][j]['t']))*transform_list[i][j]['s'] + transform_list[i][j]['o']
+
+    return Base

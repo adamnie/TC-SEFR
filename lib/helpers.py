@@ -21,12 +21,12 @@ def get_quantization_coefficients(quant_block):
             y = round(y)
 
     coefficients = []
-    coefficients.append(normalize(quant_block[0,0]),256)
-    coefficients.append(normalize(quant_block[0,1]),128)
-    coefficients.append(normalize(quant_block[1,0]),128)
-    coefficients.append(normalize(quant_block[2,0]),32)
-    coefficients.append(normalize(quant_block[1,1]),64)
-    coefficients.append(normalize(quant_block[0,2]),128)
+    coefficients.append(normalize(quant_block[0,0],256))
+    coefficients.append(normalize(quant_block[0,1],128))
+    coefficients.append(normalize(quant_block[1,0],128))
+    coefficients.append(normalize(quant_block[2,0],32))
+    coefficients.append(normalize(quant_block[1,1],64))
+    coefficients.append(normalize(quant_block[0,2],128))
 
     return coefficients
 
@@ -92,11 +92,9 @@ def compare(R,D):
     return Res
 
 def normalize(number, max_value):
-  if number < 0 :
-    number *= -1
-    number = number % max_value
-    number *= -1
-  else:
-    number = number % max_value
+  if number > max_value:
+    number = max_value
+  if number < -max_value:
+    number = - max_value:
 
     return number  

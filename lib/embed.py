@@ -1,10 +1,11 @@
-from fractal_refurbished import *
-from wm_img import *
-from helpers_refurbished import *
+from lib.fractal import *
+from lib.wm_img import *
+from lib.helpers import *
 import numpy as np
 import math
 import hashlib
 
+#constants
 BITS_FOR_CHECKSUM = 16
 
 """

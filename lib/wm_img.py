@@ -1,8 +1,8 @@
 # wm_img.py
 # class designed specially for algorithm provided in the article
 
-from img_refurbished import *
-from fractal import *
+from lib.img import *
+from lib.fractal import *
 import math
 
 size = 8  #as for 8x8 blocks

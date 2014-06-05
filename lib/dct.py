@@ -27,11 +27,8 @@ class DCT:
             dct_list.append(dct(block,type=3,norm='ortho'))
         return dct_list
 
-    def reverse(self,DCT_LIST):
-        block_list = []
-        for dct in DCT_LIST:
-            block_list.append(idct(dct,type=3,norm='ortho'))
-        return block_list
+    def reverse(self,block):
+        return idct(block,type=3,norm='ortho')
 
     def compare(self,R,D):
         diff = 0.0 
