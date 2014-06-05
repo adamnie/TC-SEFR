@@ -79,8 +79,8 @@ def compare(R,D):
     o = R_average - s* D_average;
     s = normalize(s,MAX_S)
     o = normalize(o,MAX_O)
-
-    E = LA.norm(R*(s*D+o))
+ 
+    E = LA.norm(R - (s*D+o))
 
     Res['E'] = int(E)
     Res['s'] = s
@@ -94,7 +94,7 @@ def compare(R,D):
 def normalize(number, max_value):
   if number > max_value:
     number = max_value
-  if number < -max_value:
-    number = - max_value:
+  if number < - max_value:
+    number = - max_value
 
-    return number  
+  return number  

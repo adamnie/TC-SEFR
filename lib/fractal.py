@@ -2,6 +2,8 @@ import numpy as np
 import datetime
 from lib.dct import *
 
+MAX_ERROR = float('inf')
+
 class fractal:
 
   how_many = 5
@@ -47,7 +49,7 @@ class fractal:
 
         list_to_compare = find_best(self.how_many,local)
 
-        transformation_data_list[R_y][R_x] = compare_best(R,list_to_compare,D_list)
+        transformation_data_list[R_x][R_y] = compare_best(R,list_to_compare,D_list)
 
     print "it took: ", (datetime.datetime.now() - time) 
 
