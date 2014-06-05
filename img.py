@@ -125,7 +125,7 @@ class R_block(img):
         plt.imshow(self, cmap=plt.cm.gray, interpolation='none', norm=plt.Normalize(0,255)) # bez normalizacji normalizuje do max i min z self
         plt.show(block=True)
 
-# class for D_block for special operations
+# class for D_block for special operations 
 class D_block(img):
 
     def __init__(self,*args):
