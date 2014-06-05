@@ -13,10 +13,10 @@ First, we have to import all necessary files.
 """
 
 import numpy as np
-from img_refurbished import *
-from helpers_refurbished import *
+from img import *
+from helpers import *
 from wm_img import *
-from fractal_refurbished import *
+from fractal import *
 from time import *
 from embed import *
 import json                              # this one allows us to avoid long computation time while debugging: once computed, you can load it from file by setting boolean flag compress

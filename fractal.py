@@ -1,5 +1,5 @@
 import numpy as np 
-from img_refurbished import *
+from img import *
 from dct import *
 import datetime
 

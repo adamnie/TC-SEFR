@@ -1,7 +1,7 @@
 # wm_img.py
 # class designed specially for algorithm provided in the article
 
-from img_refurbished import *
+from img import *
 from fractal import *
 import math
 

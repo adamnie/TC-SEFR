@@ -1,6 +1,6 @@
-from fractal_refurbished import *
+from fractal import *
 from wm_img import *
-from helpers_refurbished import *
+from helpers import *
 import numpy as np
 import math
 import hashlib
