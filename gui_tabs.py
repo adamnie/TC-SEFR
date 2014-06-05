@@ -269,7 +269,7 @@ class Handlers:
                 num = "0" + str(i)
             else:
                 num = str(i)
-            filename = "animation/code" + num + ".png"
+            filename = "animation/code" + num + ".gif"
             code_animation.append(PhotoImage(file=filename))
         window.overrideredirect(1)
         working_label = Label(window, text=Strings.in_progress)
@@ -301,7 +301,7 @@ class Handlers:
                 num = "0" + str(i)
             else:
                 num = str(i)
-            filename = "animation/decode" + num + ".png"
+            filename = "animation/decode" + num + ".gif"
             decode_animation.append(PhotoImage(file=filename))
         window.overrideredirect(1)
         working_label = Label(window, text=Strings.in_progress)
@@ -353,15 +353,15 @@ about_tab = Tab(root, Strings.about_tab_name)
 space2_label = Label(about_tab, text="                   ")
 space2_label.grid(row=0,column=0,columnspan=2)
  
-kt_logo = PhotoImage(file="images/ktlogo.png")
+kt_logo = PhotoImage(file="images/ktlogo.gif")
 kt_logo_label = Label(about_tab, image=kt_logo)
 kt_logo_label.grid(row=1,column=0, pady=10, sticky=N)
 
-iet_logo = PhotoImage(file="images/ietlogo.png")
+iet_logo = PhotoImage(file="images/ietlogo.gif")
 iet_logo_label = Label(about_tab, image=iet_logo)
 iet_logo_label.grid(row=2, column=0, pady=10, sticky=N)
 
-agh_logo = PhotoImage(file="images/aghlogo.png")
+agh_logo = PhotoImage(file="images/aghlogo.gif")
 agh_logo_label = Label(about_tab, image=agh_logo)
 agh_logo_label.grid(row=3, column=0, pady=10, sticky=N)
 
@@ -374,7 +374,7 @@ title_label.grid(row=1, column=2, padx=30)
 opis_label = Label(about_tab, text=Strings.opis)
 opis_label.grid(row=2, column=2, rowspan=2, padx=30, sticky=N)
 
-git_logo = PhotoImage(file="images/gitlogo.png")
+git_logo = PhotoImage(file="images/gitlogo.gif")
 git_button = Button(about_tab, image=git_logo, compound=LEFT, text=Strings.visit_git, command=lambda: webbrowser.open("https://github.com/adamnie/TC-SEFR"))
 git_button.grid(row=4, column=0, columnspan=3, sticky=S, pady=20)
 
@@ -458,9 +458,10 @@ decode_button = Button(decode_tab, text=Strings.button_decode, command=Handlers.
 decode_button.grid(row=9, column=0, columnspan=3)
 
 # IMPORTING IMAGES
-code_tab_button = PhotoImage(file="images/button_code.png")
-decode_tab_button = PhotoImage(file="images/button_decode.png")
-about_tab_button = PhotoImage(file="images/button_about.png")
+code_tab_button = PhotoImage(file="images/button_code.gif")
+decode_tab_button = PhotoImage(file="images/button_decode.gif")
+about_tab_button = PhotoImage(file="images/button_about.gif")
+
 
 # ADDING TABS TO BAR
 bar.add(code_tab, code_tab_button, Strings.code_tab_name)
