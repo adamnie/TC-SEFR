@@ -185,30 +185,30 @@ class Dialogue:
                     decode_button.configure(state=NORMAL)
 
 class CurrentData:
-    def refresh_opt(self):
-        title = "Current data: "
-        blocksize="Blocksize: " + str(block_size_slider.get())
-        sth = "Second: " + str(sth_slider.get())
-        else_ = "Third: " + str(else_slider.get())
-        what = "Fourth: " + str(what_slider.get())
-        current_data=title + "\n" + blocksize + "    " + sth + "\n" + else_ + "    " + what
-        current_data_label.configure(text=current_data)
-    def refresh_img(self):
-        title = "Image data: "
-        img_name = "Filename: " + str(image.get_nazwa())
-        img_format = "Format: " + str(image.format)
-        img_size = "Image size: " + str(image.width()) + "x" + str(image.height())
-        img_data = title + "\n" + img_name + "\n" + img_format + ", " + img_size
-        img_data_label.configure(text=img_data)
+    # def refresh_opt(self):
+    #     title = "Current data: "
+    #     blocksize="Blocksize: " + str(block_size_slider.get())
+    #     sth = "Second: " + str(sth_slider.get())
+    #     else_ = "Third: " + str(else_slider.get())
+    #     what = "Fourth: " + str(what_slider.get())
+    #     current_data=title + "\n" + blocksize + "    " + sth + "\n" + else_ + "    " + what
+    #     current_data_label.configure(text=current_data)
+    # def refresh_img(self):
+    #     title = "Image data: "
+    #     img_name = "Filename: " + str('whatever')
+    #     img_format = "Format: " + str(image.format)
+    #     img_size = "Image size: " + str(image.width()) + "x" + str(image.height())
+    #     img_data = title + "\n" + img_name + "\n" + img_format + ", " + img_size
+    #     img_data_label.configure(text=img_data)
 
-    def refresh_imgDecode(self):
-        title = "Image data: "
-        img_name = "Filename: " + str(imageToDecode.get_nazwa())
-        img_format = "Format: " + str(imageToDecode.format)
-        img_size = "Image size: " + str(imageToDecode.width()) + "x" + str(imageToDecode.height())
-        imgDecode_data = title + "\n" + img_name + "\n" + img_format + ", " + img_size
-        imgDecode_data_label.configure(text=imgDecode_data)
-
+    # def refresh_imgDecode(self):
+    #     title = "Image data: "
+    #     img_name = "Filename: " + str('whatever')
+    #     img_format = "Format: " + str(imageToDecode.format)
+    #     img_size = "Image size: " + str(imageToDecode.width()) + "x" + str(imageToDecode.height())
+    #     imgDecode_data = title + "\n" + img_name + "\n" + img_format + ", " + img_size
+    #     imgDecode_data_label.configure(text=imgDecode_data)
+    pass
 
 
 def do_animation(currentframe, window, wrap, time_start, time_elapsed, which):
@@ -383,7 +383,7 @@ code_tab = Tab(root, Strings.code_tab_name)
 
 #image is an Image instance that we are really working with
 #image_thumb is the PhotoImage instance that is shown on screen (resized)
-image = open_img_PGM("images/noimg.pgm")
+image = img("images/noimg.pgm")
 image.setflags(write=True) 
 image_thumb = image.resize((300,300))
 image_thumb = preparePhotoImage(image)
@@ -436,7 +436,7 @@ perform_button.grid(row=9, column=0, columnspan=3)
 
 # DECODE
 decode_tab = Tab(root, Strings.decode_tab_name)
-imageToDecode = fractal.open_img_PGM("images/noimg.pgm")
+imageToDecode = img("images/noimg.pgm")
 imageToDecode.setflags(write=True) 
 imageToDecode_thumb = image.resize((300,300))
 imageToDecode_thumb = preparePhotoImage(image)

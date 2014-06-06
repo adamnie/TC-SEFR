@@ -6,7 +6,7 @@ import numpy as np
 from scipy import misc
 from helpers import *
 import matplotlib.pyplot as plt
-import PIL
+from PIL import ImageFile
 import numpy
 
 # class for imported image
