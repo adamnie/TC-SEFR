@@ -28,7 +28,7 @@ fractal = fractal()
 reconstruct = reconstruct()
 DCT = DCT()
 
-image = img('./pictures/pepper.pgm')
+image = img('./pictures/scarlett.pgm')
 image.setflags(write=True)
 
 imageA = wm_img(image)
@@ -105,8 +105,8 @@ for quadrant in range(4):
       x = i * R_block_size + quadrant_offset['x']
       y = j * R_block_size + quadrant_offset['y']
 
-      B_coefficients = get_quantization_coefficients(imageB.get_block(listB[i_quad][j_quad]))
-      C_coefficients = get_quantization_coefficients(imageC.get_block(listC[i_quad][j_quad]))
+      B_coefficients = get_quantization_coefficients(imageB.get_block(coords={'x':x,'y':y}))
+      C_coefficients = get_quantization_coefficients(imageC.get_block(coords={'x':x,'y':y}))
 
       # converting to int
       B_coefficients = [int(coef) for coef in B_coefficients]
@@ -124,8 +124,8 @@ for quadrant in range(4):
 print "Embedding finished. "
 
 # damaging blocks
-# imageA.save_block(np.zeros((20,20)),{'x':100,'y':50})
-# imageA.plot()
+imageA.save_block(np.zeros((50,50)),{'x':0,'y':0})
+imageA.plot()
 # data, that may be used to reconstruct image
 ret_comp_data = []
 
@@ -161,7 +161,6 @@ for quadrant in range(4):
   for i in range(blocks_in_quad):
     for j in range(blocks_in_quad):    
       B_correct = True
-      C_correct = True
 
       i_quad = i + quadrant_offset['x'] / R_block_size
       j_quad = j + quadrant_offset['y'] / R_block_size
@@ -174,7 +173,7 @@ for quadrant in range(4):
 
       data = retrieve_watermark_and_checksum(blockA)
 
-      B_recalculated = get_coefficients_from_normalized(blockB)
+      B_recalculated = get_quantization_coefficients(blockB)
 
       for k in range(6):
         if B_recalculated[k] != data[1][k]:
@@ -184,14 +183,43 @@ for quadrant in range(4):
         B_type_is_ok[i_quad][j_quad] = 1
       else: 
         B_type_is_ok[i_quad][j_quad] = -1   
-        
-correctness_table = checksum_is_correct
-print B_type_is_ok
 
 for quadrant in range(4):
-  mapper_q = imageB.quadrant_attr[quadrant]['mapper']
-  mapper_offset = {'x': imageB.quadrant_attr[mapper_q]['x'], 'y': imageB.quadrant_attr[mapper_q]['y'] } 
-  quadrant_offset = {'x': imageB.quadrant_attr[quadrant]['x'], 'y': imageB.quadrant_attr[quadrant]['y'] }
+  mapper_q = imageC.quadrant_attr[quadrant]['mapper']
+  mapper_offset = {'x': imageC.quadrant_attr[mapper_q]['x'], 'y': imageC.quadrant_attr[mapper_q]['y'] } 
+  quadrant_offset = {'x': imageC.quadrant_attr[quadrant]['x'], 'y': imageC.quadrant_attr[quadrant]['y'] }
+  for i in range(blocks_in_quad):
+    for j in range(blocks_in_quad):    
+      C_correct = True
+
+      i_quad = i + quadrant_offset['x'] / R_block_size
+      j_quad = j + quadrant_offset['y'] / R_block_size
+
+      x = i * R_block_size + quadrant_offset['x']
+      y = j * R_block_size + quadrant_offset['y']
+
+      blockA = imageA.get_block({'x':x,'y':y})
+      blockC = imageC.get_block({'x':x,'y':y})
+
+      data = retrieve_watermark_and_checksum(blockA)
+
+      C_recalculated = get_quantization_coefficients(blockC)
+
+      for k in range(6):
+        if C_recalculated[k] != data[2][k]:
+          C_correct = False
+
+      if C_correct:
+        C_type_is_ok[i_quad][j_quad] = 1
+      else: 
+        C_type_is_ok[i_quad][j_quad] = -1 
+
+correctness_table = checksum_is_correct + B_type_is_ok + C_type_is_ok
+# A reconstruction
+for quadrant in range(4):
+  mapper_q = imageA.quadrant_attr[quadrant]['mapper']
+  mapper_offset = {'x': imageA.quadrant_attr[mapper_q]['x'], 'y': imageA.quadrant_attr[mapper_q]['y'] } 
+  quadrant_offset = {'x': imageA.quadrant_attr[quadrant]['x'], 'y': imageA.quadrant_attr[quadrant]['y'] }
   for i in range(blocks_in_quad):
     for j in range(blocks_in_quad): 
 
@@ -204,11 +232,15 @@ for quadrant in range(4):
       if correctness_table[i_quad][j_quad] < 0:
         blockA = imageA.get_block({'x':x,'y':y})
         data = retrieve_watermark_and_checksum(blockA)
-        x_base = data[0]['x'] + quadrant_offset['x']
-        y_base = data[0]['y'] + quadrant_offset['y']
+        x_base = data[0]['x'] + mapper_offset['x']
+        y_base = data[0]['y'] + mapper_offset['y']
+
         base_block = imageA.get_block({'x': x_base,'y':y_base})
         reconstructed_block = reconstruct.fromA(base_block,data[0],R_block_size)
         imageA.save_block(reconstructed_block,{'x':x,'y': y})
+
+# B reconstruction
+
 
 print correctness_table
 imageA.plot()
