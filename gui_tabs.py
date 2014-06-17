@@ -10,12 +10,19 @@ import numpy as np
 import Tkconstants, tkFileDialog, tkHyperlinkManager
 import time
 import webbrowser
+from threading import Timer
 
 BASE = RAISED
 SELECTED = RIDGE
 LANGUAGE = "EN"
 VERBOSE = True
 
+#FLAGS TO SHOW PROGRESS
+checksum_flag = False
+coefB_flag = False
+coefC_flag = False
+reconstr_flag = False
+done_flag = False
 
 #longer strings etc.
 class Strings:
@@ -256,12 +263,28 @@ def secondformat(nr):
     msS = str(ms)
     return minutesS + ":" + secondsS + "." + msS  
     
+# function that instantly updates label's text
+def updateLabel(what, w):
+    what.configure(text=w)
+
+# marks label as done
+def markAsDone(what, w):
+    global done
+    what.configure(image=done)
+
 
 code_animation = []
 decode_animation = []
+
 class Handlers:
     def perform(self):
-        global code_animation
+        global code_animation, done
+       
+        def finished(window, label):
+            label.configure(text="Finished!")
+            t = Timer(2.0, window.destroy)
+            t.start()
+
         print "Called perform handler (which does almost nothing)!"
         window = Toplevel(root)
         for i in range(0,77):
@@ -286,6 +309,10 @@ class Handlers:
         button_stop.pack(expand=YES, fill=BOTH)
         window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "code")
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
+
+        t4 = Timer(6.0, finished, (window, working_label))
+        t4.start()
+        
         window.mainloop()
 
     def destroywindow(self, window):
@@ -293,7 +320,14 @@ class Handlers:
         window.destroy()
 
     def decode(self):
-        global decode_animation
+        global decode_animation, checksum_flag, coefC_flag, coefB_flag, done_flag, reconstr_flag
+
+        # finish and close small window
+        def finished(window, label):
+            label.configure(text="Finished!")
+            t = Timer(2.0, window.destroy)
+            t.start()
+
         print "Called decode handler (which does almost nothing)!"
         window = Toplevel(root)
         for i in range(0,77):
@@ -305,20 +339,72 @@ class Handlers:
             decode_animation.append(PhotoImage(file=filename))
         window.overrideredirect(1)
         working_label = Label(window, text=Strings.in_progress)
-        working_label.pack(expand=YES, fill=BOTH)
+        working_label.grid(row=0, column=0, columnspan=2)
+
         wrap = Canvas(window, width=160, height=200)
-        wrap.pack(expand=YES, fill=BOTH)
+        wrap.grid(row=1, column=0, columnspan=2)
         time_start = time.clock()
         time_now = time.clock()
         time_elapsed = StringVar()
         time_elapsed.set(secondformat(time_now-time_start))
+
+        none = PhotoImage(file="images/none.gif")
+       
+        checksum_done = Label(window,image=none)
+        checksum_done.grid(row=3, column=0, sticky=E)
+        checksum = Label(window, text="Checksum... ")
+        checksum.grid(row=3,column=1, sticky=W)
+
+        coefB_done = Label(window, image=none)
+        coefB_done.grid(row=4,column=0, sticky=E)
+        coefB = Label(window, text="Calculating B... ")
+        coefB.grid(row=4,column=1, sticky=W)
+
+        coefC_done = Label(window, image=none)
+        coefC_done.grid(row=5,column=0, sticky=E)
+        coefC = Label(window, text="Calculating C... ")
+        coefC.grid(row=5,column=1, sticky=W)
+
+        reconstr_done = Label(window, image=none)
+        reconstr_done.grid(row=6, column=0, sticky=E)
+        reconstr = Label(window, text="Reconstructing...")
+        reconstr.grid(row=6,column=1, sticky=W)
+
+        # przyklady "zapalania" poszczegolnych "lampek" 
+        #
+        # wykonano coefB: 
+        # markAsDone(coefB_done, "done")
+        #
+        #
+
+
+        #
+        # t = Timer(5.0, markAsDone, (checksum_done, "done"))
+        # t.start()
+
+        # t2 = Timer(3.0, markAsDone, (coefB_done, "done"))
+        # t2.start()
+
+        # t3 = Timer(4.0, markAsDone, (coefC_done, "done"))
+        # t3.start()
+
+
+
+        # zakonczono?
+        # wywolaj finished(window, working_label)
+        t4 = Timer(6.0, finished, (window, working_label))
+        t4.start()
+
+
         time_label = Label(window, textvariable=time_elapsed)
-        time_label.pack(expand=YES, fill=X)
+        time_label.grid(row=7, column=0, columnspan=2)
         button_stop = Button(window, text="STOP", command=lambda:Handlers.destroywindow(window))
-        button_stop.pack(expand=YES, fill=BOTH)
+        button_stop.grid(row=8, column=0, columnspan=2)
         window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "decode")
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
         window.mainloop()
+
+
 
 
 def preparePhotoImage(img):
@@ -344,6 +430,8 @@ Handlers = Handlers()
 root.title("TC-SEFR - Antoni Grzanka, Adam Niedzialkowski")
 root.geometry("700x600" + "+" + str(SCREEN_WIDTH/2 - 700/2) + "+" + str(SCREEN_HEIGHT/2 - 600/2) )
 root.resizable(0,0)
+
+done = PhotoImage(file="images/ok.gif")
 
 bar = TabBar(root)
 
