@@ -9,8 +9,9 @@ from lib.helpers import *
 from lib.wm_img import *
 from lib.fractal import *
 from lib.embed import *
+from lib.reconstruct import *
 
-calculate = True # decide whether to calculate or load data
+calculate = False # decide whether to calculate or load data
 R_block_size = 8
 
 quantization_table = np.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
@@ -24,6 +25,7 @@ quantization_table = np.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
 
 # initializing objects
 fractal = fractal()
+reconstruct = reconstruct()
 DCT = DCT()
 
 image = img('./pictures/pepper.pgm')
@@ -34,7 +36,7 @@ imageA.type = 'A'
 listA = imageA.divide(R_block_size)
 
 for i in range(4):
-    nazwa = "./precalculated_files/wspolczynniki" + str(i) + "_new.json"
+    nazwa = "./precalculated_files/wspolczynniki_"+ image.name + "_" + str(i) + "_new.json"
     if (not calculate):  # ladowanie z pliku
         if i==0: 
           print "Loading previously calculated watermark data..."
@@ -82,11 +84,13 @@ A_type_is_ok = np.zeros([len(listA),len(listA)])
 B_type_is_ok = np.zeros([len(listB),len(listB)])
 C_type_is_ok = np.zeros([len(listC),len(listC)])
 
+correctnes_table = np.zeros([len(listA),len(listA)])
+
 blocks_in_quad = len(listA)/2
 
+B_first = []
 #saving compression data in the image
 print "Start embedding..."
-
 for quadrant in range(4):
   mapper_q = imageA.quadrant_attr[quadrant]['mapper']
   mapper_offset = {'x': imageA.quadrant_attr[mapper_q]['x'], 'y': imageA.quadrant_attr[mapper_q]['y'] } 
@@ -98,21 +102,35 @@ for quadrant in range(4):
       i_quad = i + quadrant_offset['x'] / R_block_size
       j_quad = j + quadrant_offset['y'] / R_block_size
 
+      x = i * R_block_size + quadrant_offset['x']
+      y = j * R_block_size + quadrant_offset['y']
+
       B_coefficients = get_quantization_coefficients(imageB.get_block(listB[i_quad][j_quad]))
       C_coefficients = get_quantization_coefficients(imageC.get_block(listC[i_quad][j_quad]))
 
+      # converting to int
+      B_coefficients = [int(coef) for coef in B_coefficients]
+      C_coefficients = [int(coef) for coef in C_coefficients]
+      B_first.append(B_coefficients)
       compression_data = fractal.coefficients[quadrant][i][j]
 
-      block = imageA.get_block(compression_data)
+      block = imageA.get_block(coords={'x':x,'y':y})
 
       watermarked_block = embed_watermark(block,compression_data,B_coefficients,C_coefficients) 
       watermarked_block = embed_checksum(watermarked_block)
 
-      imageA.save_block(watermarked_block,{'x':i_quad,'y':j_quad})
+      imageA.save_block(watermarked_block,{'x':x,'y':y})
 
-# imageA.plot() 
+print "Embedding finished. "
+
+# damaging blocks
+# imageA.save_block(np.zeros((20,20)),{'x':100,'y':50})
+# imageA.plot()
+# data, that may be used to reconstruct image
 ret_comp_data = []
 
+# checking correctnes of checksum
+print "Start checking data ..."
 for quadrant in range(4):
   mapper_q = imageA.quadrant_attr[quadrant]['mapper']
   mapper_offset = {'x': imageA.quadrant_attr[mapper_q]['x'], 'y': imageA.quadrant_attr[mapper_q]['y'] } 
@@ -125,15 +143,73 @@ for quadrant in range(4):
       i_quad = i + quadrant_offset['x'] / R_block_size
       j_quad = j + quadrant_offset['y'] / R_block_size
 
-      block = imageA.get_block({'x':i_quad,'y':j_quad})
+      x = i * R_block_size + quadrant_offset['x']
+      y = j * R_block_size + quadrant_offset['y']
+
+      block = imageA.get_block({'x':x,'y':y})
       ret_comp_data[quadrant][i][j].append(retrieve_watermark_and_checksum(block))
       if errors_occured(block,ret_comp_data[quadrant][i][j][0][3]):
-        checksum_is_correct[i_quad][j_quad] = 1
+        checksum_is_correct[i_quad][j_quad] = -1
       else:
-        checksum_is_correct[i_quad][j_quad] = -1 
+        checksum_is_correct[i_quad][j_quad] = 1
 
-print sum(checksum_is_correct)      
+# checking correctness of B blocks info 
+for quadrant in range(4):
+  mapper_q = imageB.quadrant_attr[quadrant]['mapper']
+  mapper_offset = {'x': imageB.quadrant_attr[mapper_q]['x'], 'y': imageB.quadrant_attr[mapper_q]['y'] } 
+  quadrant_offset = {'x': imageB.quadrant_attr[quadrant]['x'], 'y': imageB.quadrant_attr[quadrant]['y'] }
+  for i in range(blocks_in_quad):
+    for j in range(blocks_in_quad):    
+      B_correct = True
+      C_correct = True
 
+      i_quad = i + quadrant_offset['x'] / R_block_size
+      j_quad = j + quadrant_offset['y'] / R_block_size
 
+      x = i * R_block_size + quadrant_offset['x']
+      y = j * R_block_size + quadrant_offset['y']
 
+      blockA = imageA.get_block({'x':x,'y':y})
+      blockB = imageB.get_block({'x':x,'y':y})
+
+      data = retrieve_watermark_and_checksum(blockA)
+
+      B_recalculated = get_coefficients_from_normalized(blockB)
+
+      for k in range(6):
+        if B_recalculated[k] != data[1][k]:
+          B_correct = False
+
+      if B_correct:
+        B_type_is_ok[i_quad][j_quad] = 1
+      else: 
+        B_type_is_ok[i_quad][j_quad] = -1   
+        
+correctness_table = checksum_is_correct
+print B_type_is_ok
+
+for quadrant in range(4):
+  mapper_q = imageB.quadrant_attr[quadrant]['mapper']
+  mapper_offset = {'x': imageB.quadrant_attr[mapper_q]['x'], 'y': imageB.quadrant_attr[mapper_q]['y'] } 
+  quadrant_offset = {'x': imageB.quadrant_attr[quadrant]['x'], 'y': imageB.quadrant_attr[quadrant]['y'] }
+  for i in range(blocks_in_quad):
+    for j in range(blocks_in_quad): 
+
+      i_quad = i + quadrant_offset['x'] / R_block_size
+      j_quad = j + quadrant_offset['y'] / R_block_size
+
+      x = i * R_block_size + quadrant_offset['x']
+      y = j * R_block_size + quadrant_offset['y']
+
+      if correctness_table[i_quad][j_quad] < 0:
+        blockA = imageA.get_block({'x':x,'y':y})
+        data = retrieve_watermark_and_checksum(blockA)
+        x_base = data[0]['x'] + quadrant_offset['x']
+        y_base = data[0]['y'] + quadrant_offset['y']
+        base_block = imageA.get_block({'x': x_base,'y':y_base})
+        reconstructed_block = reconstruct.fromA(base_block,data[0],R_block_size)
+        imageA.save_block(reconstructed_block,{'x':x,'y': y})
+
+print correctness_table
+imageA.plot()
 

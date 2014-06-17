@@ -1,6 +1,7 @@
 import numpy as np 
 import datetime
 from lib.dct import *
+from lib.helpers import *
 
 MAX_ERROR = float('inf')
 
@@ -25,7 +26,7 @@ class fractal:
     time = datetime.datetime.now()
 
     R_count = [image_R.block_number_y(R_size),image_R.block_number_x(R_size)]
-    D_count = [image_D.block_number_y(R_size),image_D.block_number_x(R_size)]       
+    D_count = [image_D.block_number_y(2*R_size),image_D.block_number_x(2*R_size)]       
 
     D_list = image_D.get_D_blocks(D_count,R_size)
 
@@ -36,8 +37,8 @@ class fractal:
         R = image_R.block_R(R_x,R_y,R_size)
         transformation_data_list[R_x].append({'E': MAX_ERROR})
         local = []
-        for D_x in range(0,D_count[0]-1):
-          for D_y in range (0,D_count[1]-1):
+        for D_x in range(0,D_count[0]):
+          for D_y in range (0,D_count[1]):
             for T_type in range(7):
               local_dict = {}
               D = transform(D_list[D_x][D_y],T_type)
@@ -55,7 +56,7 @@ class fractal:
 
     return transformation_data_list
 
-  def decompression(self,transform_list,Base,R_block_size):
+  def decompression(self,compression_data,Base,R_block_size):
     """
         img_size should be a matrix ([sizeX,sizeY])
         transform list should be the result of fractal.compression()
@@ -63,9 +64,10 @@ class fractal:
         data found)
     """
 
-    for iteration in range(0,2):
-        for i in range(Base.shape[0]/R_block_size):
-            for j in range(Base.shape[0]/R_block_size):
-                Base[R_block_size*i:R_block_size*(i+1)][R_block_size*j:R_block_size*(j+1)] = (transform(average(Base[transform_list[i][j]['x']:transform_list[i][j]['x']+2*R_block_size][transform_list[i][j]['y']:transform_list[i][j]['y'] + 2*R_block_size]),transform_list[i][j]['t']))*transform_list[i][j]['s'] + transform_list[i][j]['o']
+    decompressed = transform(Base,compression_data['t'])*compression_data['s'] + compression_data['o']
 
-    return Base
+    for row in decompressed:
+      for pixel in row:
+        pixel = normalize(pixel,256)
+
+    return decompressed

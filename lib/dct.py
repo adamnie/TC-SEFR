@@ -11,15 +11,19 @@ quantization_table = np.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
                                    [49, 64, 78, 87, 103, 121, 120, 101],
                                    [72, 92, 95, 98, 112, 100, 103, 99]]);
 
+
+
 class DCT:
     """
         Wrapper class for scipy.fftpack.dct/idct
     """
     def __new__(self):
+        dct = lambda x: fftpack.dct(x, type=3,norm='ortho')
+        idct = lambda x: fftpack.idct(x, type=3,norm='ortho')
         return self
 
     def perform(self,block):
-        return dct(block,type=3,norm='ortho')
+        return dct(dct(block.T).T)
 
     def perform_block(self,block_list):
         dct_list = []
@@ -28,8 +32,13 @@ class DCT:
         return dct_list
 
     def reverse(self,block):
-        return idct(block,type=3,norm='ortho')
+        return idct(idct(block.T).T)
 
+    def reverse_block(self,block):
+        dct_list = []
+        for block in block_list:
+            dct_list.append(dct(block,type=3,norm='ortho'))
+        return dct_list
     def compare(self,R,D):
         diff = 0.0 
         R_DCT = dct(R,type=3,norm='ortho')

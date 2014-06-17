@@ -9,10 +9,10 @@ import matplotlib.pyplot as plt
 from PIL import ImageFile
 
 class img(np.ndarray):
-
     def __init__(self,stuff):
       pass
-    def __new__(self,filename):   
+    def __new__(self,filename):
+      self.name = filename[11:-4]   
       fp = open(filename,'rb')
 
       p = ImageFile.Parser()
@@ -24,11 +24,12 @@ class img(np.ndarray):
         p.feed(s)
 
       im = p.close()
-      pixels = np.asarray(im)
+      pixels = np.asarray(im).astype(int)
     
       return pixels.view(img)
 
     def save_block(self,new_block,coords):
+      new_block = new_block.astype(int)
       size = len(new_block)
       for x in range(size):
         for y in range(size):
@@ -103,9 +104,9 @@ class img(np.ndarray):
       return returnBlock.view(img)
     def get_D_blocks(self,D_number,R_size,delta=None,average=True):
       D_list = []
-      for D_x in range(0,D_number[0]-1):
+      for D_x in range(0,D_number[0]):
             D_list.append([])
-            for D_y in range (0,D_number[1]-1):
+            for D_y in range (0,D_number[1]):
                 D = self.block_D(D_x,D_y,R_size,delta)
                 if average == True:           # if avg == True, returns R_size x R_size
                     D = mean_by_four(D)   # if avg == False, returns 2*R_size x 2*R_size
