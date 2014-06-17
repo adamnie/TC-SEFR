@@ -4,11 +4,7 @@
 #imports
 import numpy as np
 from scipy import misc
-<<<<<<< HEAD:lib/img.py
 from lib.helpers import *
-=======
-from helpers import *
->>>>>>> gui:img.py
 import matplotlib.pyplot as plt
 from PIL import ImageFile
 import numpy
@@ -18,7 +14,6 @@ class img(numpy.ndarray):
 
     nazwa = None
     format = None
-
     # initialize
     def __init__(self, obraz):
         self.obraz = obraz
@@ -28,9 +23,6 @@ class img(numpy.ndarray):
     def get_nazwa(self):
         return self.nazwa
 
-class img(np.ndarray):
-    def __init__(self,stuff):
-      pass
     def __new__(self,filename):
       self.name = filename[11:-4]   
       fp = open(filename,'rb')

@@ -5,17 +5,24 @@
 
 from Tkinter import *
 from PIL import Image, ImageTk
-from fractal import *
+from lib.fractal import *
 import numpy as np
 import Tkconstants, tkFileDialog, tkHyperlinkManager
 import time
 import webbrowser
+from threading import Timer
 
 BASE = RAISED
 SELECTED = RIDGE
 LANGUAGE = "EN"
 VERBOSE = True
 
+#FLAGS TO SHOW PROGRESS
+checksum_flag = False
+coefB_flag = False
+coefC_flag = False
+reconstr_flag = False
+done_flag = False
 
 #longer strings etc.
 class Strings:
@@ -151,7 +158,7 @@ class Dialogue:
             global image, imageToDecode, imageToDecode_thumb, image_thumb
             if which=="code":
                 try:
-                    image = fractal.open_img_PGM(filename)
+                    image = img(filename)
                 except IOError:
                     print Strings.unable_to_open 
                 else:
@@ -168,7 +175,7 @@ class Dialogue:
                     perform_button.configure(state=NORMAL)
             elif which=="decode":
                 try:
-                    imageToDecode = fractal.open_img_PGM(filename)
+                    imageToDecode = img(filename)
                 except IOError:
                     print Strings.unable_to_open 
                 else:
@@ -185,30 +192,30 @@ class Dialogue:
                     decode_button.configure(state=NORMAL)
 
 class CurrentData:
-    # def refresh_opt(self):
-    #     title = "Current data: "
-    #     blocksize="Blocksize: " + str(block_size_slider.get())
-    #     sth = "Second: " + str(sth_slider.get())
-    #     else_ = "Third: " + str(else_slider.get())
-    #     what = "Fourth: " + str(what_slider.get())
-    #     current_data=title + "\n" + blocksize + "    " + sth + "\n" + else_ + "    " + what
-    #     current_data_label.configure(text=current_data)
-    # def refresh_img(self):
-    #     title = "Image data: "
-    #     img_name = "Filename: " + str('whatever')
-    #     img_format = "Format: " + str(image.format)
-    #     img_size = "Image size: " + str(image.width()) + "x" + str(image.height())
-    #     img_data = title + "\n" + img_name + "\n" + img_format + ", " + img_size
-    #     img_data_label.configure(text=img_data)
+    def refresh_opt(self):
+        title = "Current data: "
+        blocksize="Blocksize: " + str(block_size_slider.get())
+        sth = "Second: " + str(sth_slider.get())
+        else_ = "Third: " + str(else_slider.get())
+        what = "Fourth: " + str(what_slider.get())
+        current_data=title + "\n" + blocksize + "    " + sth + "\n" + else_ + "    " + what
+        current_data_label.configure(text=current_data)
+    def refresh_img(self):
+        title = "Image data: "
+        img_name = "Filename: " + str(image.get_nazwa())
+        img_format = "Format: " + str(image.format)
+        img_size = "Image size: " + str(image.width()) + "x" + str(image.height())
+        img_data = title + "\n" + img_name + "\n" + img_format + ", " + img_size
+        img_data_label.configure(text=img_data)
 
-    # def refresh_imgDecode(self):
-    #     title = "Image data: "
-    #     img_name = "Filename: " + str('whatever')
-    #     img_format = "Format: " + str(imageToDecode.format)
-    #     img_size = "Image size: " + str(imageToDecode.width()) + "x" + str(imageToDecode.height())
-    #     imgDecode_data = title + "\n" + img_name + "\n" + img_format + ", " + img_size
-    #     imgDecode_data_label.configure(text=imgDecode_data)
-    pass
+    def refresh_imgDecode(self):
+        title = "Image data: "
+        img_name = "Filename: " + str(imageToDecode.get_nazwa())
+        img_format = "Format: " + str(imageToDecode.format)
+        img_size = "Image size: " + str(imageToDecode.width()) + "x" + str(imageToDecode.height())
+        imgDecode_data = title + "\n" + img_name + "\n" + img_format + ", " + img_size
+        imgDecode_data_label.configure(text=imgDecode_data)
+
 
 
 def do_animation(currentframe, window, wrap, time_start, time_elapsed, which):
@@ -256,12 +263,28 @@ def secondformat(nr):
     msS = str(ms)
     return minutesS + ":" + secondsS + "." + msS  
     
+# function that instantly updates label's text
+def updateLabel(what, w):
+    what.configure(text=w)
+
+# marks label as done
+def markAsDone(what, w):
+    global done
+    what.configure(image=done)
+
 
 code_animation = []
 decode_animation = []
+
 class Handlers:
     def perform(self):
-        global code_animation
+        global code_animation, done
+       
+        def finished(window, label):
+            label.configure(text="Finished!")
+            t = Timer(2.0, window.destroy)
+            t.start()
+
         print "Called perform handler (which does almost nothing)!"
         window = Toplevel(root)
         for i in range(0,77):
@@ -286,6 +309,10 @@ class Handlers:
         button_stop.pack(expand=YES, fill=BOTH)
         window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "code")
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
+
+        t4 = Timer(6.0, finished, (window, working_label))
+        t4.start()
+        
         window.mainloop()
 
     def destroywindow(self, window):
@@ -293,7 +320,14 @@ class Handlers:
         window.destroy()
 
     def decode(self):
-        global decode_animation
+        global decode_animation, checksum_flag, coefC_flag, coefB_flag, done_flag, reconstr_flag
+
+        # finish and close small window
+        def finished(window, label):
+            label.configure(text="Finished!")
+            t = Timer(2.0, window.destroy)
+            t.start()
+
         print "Called decode handler (which does almost nothing)!"
         window = Toplevel(root)
         for i in range(0,77):
@@ -305,20 +339,72 @@ class Handlers:
             decode_animation.append(PhotoImage(file=filename))
         window.overrideredirect(1)
         working_label = Label(window, text=Strings.in_progress)
-        working_label.pack(expand=YES, fill=BOTH)
+        working_label.grid(row=0, column=0, columnspan=2)
+
         wrap = Canvas(window, width=160, height=200)
-        wrap.pack(expand=YES, fill=BOTH)
+        wrap.grid(row=1, column=0, columnspan=2)
         time_start = time.clock()
         time_now = time.clock()
         time_elapsed = StringVar()
         time_elapsed.set(secondformat(time_now-time_start))
+
+        none = PhotoImage(file="images/none.gif")
+       
+        checksum_done = Label(window,image=none)
+        checksum_done.grid(row=3, column=0, sticky=E)
+        checksum = Label(window, text="Checksum... ")
+        checksum.grid(row=3,column=1, sticky=W)
+
+        coefB_done = Label(window, image=none)
+        coefB_done.grid(row=4,column=0, sticky=E)
+        coefB = Label(window, text="Calculating B... ")
+        coefB.grid(row=4,column=1, sticky=W)
+
+        coefC_done = Label(window, image=none)
+        coefC_done.grid(row=5,column=0, sticky=E)
+        coefC = Label(window, text="Calculating C... ")
+        coefC.grid(row=5,column=1, sticky=W)
+
+        reconstr_done = Label(window, image=none)
+        reconstr_done.grid(row=6, column=0, sticky=E)
+        reconstr = Label(window, text="Reconstructing...")
+        reconstr.grid(row=6,column=1, sticky=W)
+
+        # przyklady "zapalania" poszczegolnych "lampek" 
+        #
+        # wykonano coefB: 
+        # markAsDone(coefB_done, "done")
+        #
+        #
+
+
+        #
+        # t = Timer(5.0, markAsDone, (checksum_done, "done"))
+        # t.start()
+
+        # t2 = Timer(3.0, markAsDone, (coefB_done, "done"))
+        # t2.start()
+
+        # t3 = Timer(4.0, markAsDone, (coefC_done, "done"))
+        # t3.start()
+
+
+
+        # zakonczono?
+        # wywolaj finished(window, working_label)
+        t4 = Timer(6.0, finished, (window, working_label))
+        t4.start()
+
+
         time_label = Label(window, textvariable=time_elapsed)
-        time_label.pack(expand=YES, fill=X)
+        time_label.grid(row=7, column=0, columnspan=2)
         button_stop = Button(window, text="STOP", command=lambda:Handlers.destroywindow(window))
-        button_stop.pack(expand=YES, fill=BOTH)
+        button_stop.grid(row=8, column=0, columnspan=2)
         window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "decode")
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
         window.mainloop()
+
+
 
 
 def preparePhotoImage(img):
@@ -344,6 +430,8 @@ Handlers = Handlers()
 root.title("TC-SEFR - Antoni Grzanka, Adam Niedzialkowski")
 root.geometry("700x600" + "+" + str(SCREEN_WIDTH/2 - 700/2) + "+" + str(SCREEN_HEIGHT/2 - 600/2) )
 root.resizable(0,0)
+
+done = PhotoImage(file="images/ok.gif")
 
 bar = TabBar(root)
 
@@ -383,11 +471,13 @@ code_tab = Tab(root, Strings.code_tab_name)
 
 #image is an Image instance that we are really working with
 #image_thumb is the PhotoImage instance that is shown on screen (resized)
-image = img("images/noimg.pgm")
+image = img("pictures/noimg.pgm")
 image.setflags(write=True) 
-image_thumb = image.resize((300,300))
-image_thumb = preparePhotoImage(image)
+image_thumb = image.resize((256,256))
+image_thumb = preparePhotoImage(image_thumb)
+
 img_code_label = Label(code_tab, image=image_thumb)
+img_code_label.image=image_thumb
 img_code_label.grid(row=2,column=2, rowspan=6, padx=50)
 
 space_label = Label(code_tab, text="                   ")
@@ -436,12 +526,14 @@ perform_button.grid(row=9, column=0, columnspan=3)
 
 # DECODE
 decode_tab = Tab(root, Strings.decode_tab_name)
-imageToDecode = img("images/noimg.pgm")
+imageToDecode = img("pictures/noimg.pgm")
 imageToDecode.setflags(write=True) 
-imageToDecode_thumb = image.resize((300,300))
-imageToDecode_thumb = preparePhotoImage(image)
+imageToDecode_thumb = image.resize((256,256))
+imageToDecode_thumb = preparePhotoImage(imageToDecode_thumb)
 img_decode_label = Label(decode_tab, image=imageToDecode_thumb)
+img_decode_label.image=imageToDecode_thumb
 img_decode_label.grid(row=2,column=2, rowspan=6, padx=50)
+
 
 spaceDecode_label = Label(decode_tab, text="                   ")
 spaceDecode_label.grid(row=0,column=0,columnspan=3)
