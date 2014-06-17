@@ -66,8 +66,4 @@ class fractal:
 
     decompressed = transform(Base,compression_data['t'])*compression_data['s'] + compression_data['o']
 
-    for row in decompressed:
-      for pixel in row:
-        pixel = normalize(pixel,256)
-
     return decompressed
