@@ -4,9 +4,29 @@
 #imports
 import numpy as np
 from scipy import misc
+<<<<<<< HEAD:lib/img.py
 from lib.helpers import *
+=======
+from helpers import *
+>>>>>>> gui:img.py
 import matplotlib.pyplot as plt
 from PIL import ImageFile
+import numpy
+
+# class for imported image
+class img(numpy.ndarray):
+
+    nazwa = None
+    format = None
+
+    # initialize
+    def __init__(self, obraz):
+        self.obraz = obraz
+        self.format = "abc"
+        self.nazwa = "name"
+
+    def get_nazwa(self):
+        return self.nazwa
 
 class img(np.ndarray):
     def __init__(self,stuff):
@@ -27,6 +47,42 @@ class img(np.ndarray):
       pixels = np.asarray(im).astype(int)
     
       return pixels.view(img)
+    #poki co bez modulo, ok? 
+
+    def how_many_D_in_a_row(self, Rsize, delta=None):
+        if (delta == None):
+            delta = Rsize
+        return (self.width() - 2*Rsize)/delta + 1
+
+    def how_many_D_in_a_column(self, Rsize, delta=None):
+        if (delta == None):
+            delta = Rsize
+        return (self.height() - 2*Rsize)/delta + 1
+
+    def resize(self, size):
+        return misc.imresize(self, size, "bilinear", "L")
+
+    # size of block D is 2x size of block R
+    # as an argument we pass the same Rsize as to block R! it is multiplied inside the function
+    # delta is the step of selecting next image, default it's equal to Rsize 
+    # x and y are numbers (indexes) of block D, assuming Dsize=2*Rsize and step=delta
+
+    def blockD(self, x, y, Rsize, delta=None): # OVERLAPPING
+        if (x>self.how_many_D_in_a_row(Rsize,delta)-1 or y>self.how_many_D_in_a_column(Rsize,delta)-1):
+            print "Blad indeksowania D!!!"
+            return -1
+        if (delta == None):
+            delta = Rsize
+        sth = self.cutsquare(x*delta,y*delta,2*Rsize)
+        #zapomnialem wczesniej o usrednieniu!!!!
+        return sth.view(D_block)
+
+    def meanbyfour(self, Rsize):
+        sth_= np.zeros(shape=(Rsize,Rsize))
+        for y in range(Rsize):
+            for x in range(Rsize):
+                sth_[y][x] = self[2*y:2*(y+1),2*x:2*(x+1)].mean()
+        return sth_.view(D_block)
 
     def save_block(self,new_block,coords):
       new_block = new_block.astype(int)
