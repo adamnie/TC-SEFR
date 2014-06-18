@@ -11,6 +11,7 @@ import Tkconstants, tkFileDialog, tkHyperlinkManager
 import time
 import webbrowser
 from threading import Timer
+from main import *
 
 BASE = RAISED
 SELECTED = RIDGE
@@ -193,8 +194,10 @@ class Dialogue:
 
 class CurrentData:
     def refresh_opt(self):
+        global sizeOfBlock
         title = "Current data: "
         blocksize="Blocksize: " + str(block_size_slider.get())
+        sizeOfBlock = block_size_slide.get()
         sth = "Second: " + str(sth_slider.get())
         else_ = "Third: " + str(else_slider.get())
         what = "Fourth: " + str(what_slider.get())
@@ -275,10 +278,11 @@ def markAsDone(what, w):
 
 code_animation = []
 decode_animation = []
+sizeOfBlock = 3
 
 class Handlers:
     def perform(self):
-        global code_animation, done
+        global code_animation, done, image
        
         def finished(window, label):
             label.configure(text="Finished!")
@@ -310,9 +314,11 @@ class Handlers:
         window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "code")
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
 
-        t4 = Timer(6.0, finished, (window, working_label))
-        t4.start()
+        # t4 = Timer(6.0, finished, (window, working_label))
+        # t4.start()
         
+        fractalObject = perform_compression(image,sizeOfBlock,True)
+
         window.mainloop()
 
     def destroywindow(self, window):
@@ -320,7 +326,7 @@ class Handlers:
         window.destroy()
 
     def decode(self):
-        global decode_animation, checksum_flag, coefC_flag, coefB_flag, done_flag, reconstr_flag
+        global decode_animation, checksum_flag, coefC_flag, coefB_flag, done_flag, reconstr_flag, imageToDecode
 
         # finish and close small window
         def finished(window, label):
@@ -432,6 +438,9 @@ root.geometry("700x600" + "+" + str(SCREEN_WIDTH/2 - 700/2) + "+" + str(SCREEN_H
 root.resizable(0,0)
 
 done = PhotoImage(file="images/ok.gif")
+image = img("pictures/noimg.pgm")
+imageToDecode = img("pictures/noimg.pgm")
+
 
 bar = TabBar(root)
 
