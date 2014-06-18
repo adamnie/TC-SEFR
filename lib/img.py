@@ -78,7 +78,7 @@ class img(numpy.ndarray):
 
     def save_block(self,new_block,coords):
       new_block = new_block.astype(int)
-      size = len(new_block)
+      size = len(new_block[0])
       for x in range(size):
         for y in range(size):
           self[coords['x']+x][coords['y']+y] = new_block[x][y]
