@@ -83,7 +83,7 @@ class img(numpy.ndarray):
         for y in range(size):
           self[coords['x']+x][coords['y']+y] = new_block[x][y]
 
-    def export(filename):
+    def export(self,filename):
       misc.imsave(filename,self)# check this command
 
     def plot(self):
