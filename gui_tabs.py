@@ -292,7 +292,7 @@ class Handlers:
 
         print "Called perform handler (which does almost nothing)!"
         window = Toplevel(root)
-        t = Process(target=main.perform_compression, args=(image,sizeOfBlock,True))
+        t = Process(target=main.perform_compression, args=(image,sizeOfBlock,False))
         for i in range(0,77):
             if i in range(0,10):
                 num = "0" + str(i)
@@ -502,7 +502,7 @@ data_label = Label(code_tab, text=Strings.data_label)
 data_label.grid(row=2, column=0, columnspan=2)
 
 block_size_label = Label(code_tab, text=Strings.block_size_label)
-block_size_slider = Scale(code_tab, from_=2, to=6, orient=HORIZONTAL)
+block_size_slider = Scale(code_tab, from_=2, to=8, orient=HORIZONTAL)
 block_size_label.grid(row=2,column=0)
 block_size_slider.grid(row=2,column=1)
 
