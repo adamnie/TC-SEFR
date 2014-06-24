@@ -13,18 +13,19 @@ import webbrowser
 from threading import Timer
 import main
 from multiprocessing import Process
+import global_flags
 
 BASE = RAISED
 SELECTED = RIDGE
 LANGUAGE = "EN"
 VERBOSE = True
+STAN_SUWAKOW = DISABLED # to change: NORMAL
 
-#FLAGS TO SHOW PROGRESS
-checksum_flag = False
-coefB_flag = False
-coefC_flag = False
-reconstr_flag = False
-done_flag = False
+global_flags.init()
+returnedFromAuth = []
+
+CALC = False
+
 
 #longer strings etc.
 class Strings:
@@ -58,18 +59,18 @@ na zabezpieczanie i weryfikacje integralnosci obrazow cyfrowych.
 
     else:
         opis = """\n\n
-The aim of the project is to implement an algorithm for
-self-reconstruction of digital images using
-fractal coding. Self-reconstruction (called self-recovery
-or self-embedding) allows you to verify the integrity of the
-images and to reconstruct the original content based on the
-digital watermark. Application developed in the project must
-be equipped with a graphical user interface that allows you
-to adjust the algorithm parameters and to protect and verify
-the integrity of digital image
+The aim of the project is to implement an algorithm for self-reconstruction 
+of digital images using fractal coding. Self-reconstruction (called self-recovery
+or self-embedding) allows user to verify the integrity of the images and to
+reconstruct the original content based on the digital watermark. Application
+developped in the project is equipped with a graphical user interface that
+allows user to adjust the algorithm parameters and to protect and verify
+the integrity of digital image.
+
+In this program, we implement algorithm from
         """
-        decode_tab_name = "Decode"
-        code_tab_name = "Encode"
+        decode_tab_name = "Decompress"
+        code_tab_name = "Compress"
         about_tab_name = "About"
         block_size_label = """
     Block size
@@ -77,7 +78,7 @@ the integrity of digital image
         """
         unable_to_open = "Unable to open/parse file. Try again"
         data_label = "Configure options:"
-        save_data = "Save data:"
+        save_data = "Save"
         load_file = "Load file"
         button_code = "Perform compression and coding"
         button_decode = "Perform decompression and decoding"
@@ -107,7 +108,7 @@ class TabBar(Frame):
     
     def show(self):
         self.pack(side=TOP, fill=Y)
-        self.switch_tab(self.init_name or self.tabs.keys()[-1])# switch the tab to the first tab
+        self.switch_tab(self.init_name or self.tabs.keys()[2])  # tutaj ostatnio zmienialem
     
     def add(self, tab, tab_img, tab_name):
         tab.pack_forget()                                   # hide the tab on init
@@ -168,13 +169,15 @@ class Dialogue:
                     image.nazwa = filename
                     image.format = filename[-3:]
                     # resizing to fit the screen - does not support other than square!
-                    image_thumb = image.resize((256,256))
+                    image_thumb = image.resize((425,425))
                     image_thumb = preparePhotoImage(image_thumb)
                     # update image
                     img_code_label.configure(image=image_thumb)
                     img_code_label.image=image_thumb
                     CurrentData.refresh_img()
+                    
                     perform_button.configure(state=NORMAL)
+
             elif which=="decode":
                 try:
                     imageToDecode = img(filename)
@@ -185,24 +188,28 @@ class Dialogue:
                     imageToDecode.nazwa = filename
                     imageToDecode.format = filename[-3:]
                     # resizing to fit the screen - does not support other than square!
-                    imageToDecode_thumb = imageToDecode.resize((256,256))
+                    imageToDecode_thumb = imageToDecode.resize((425,425))
                     imageToDecode_thumb = preparePhotoImage(imageToDecode_thumb)
                     # update image
                     img_decode_label.configure(image=imageToDecode_thumb)
                     img_decode_label.image=imageToDecode_thumb
                     CurrentData.refresh_imgDecode()
+                    authenticate_button.configure(state=NORMAL)
                     decode_button.configure(state=NORMAL)
 
 class CurrentData:
     def refresh_opt(self):
-        global sizeOfBlock
-        title = "Current data: "
-        blocksize="Blocksize: " + str(block_size_slider.get())
+        global sizeOfBlock, deltaFromSlider, eFromSlider, lumFromSlider
+        title = "\n Current data:"
+        blocksize="Block size: " + str(block_size_slider.get())
         sizeOfBlock = block_size_slider.get()
-        sth = "Second: " + str(sth_slider.get())
-        else_ = "Third: " + str(else_slider.get())
-        what = "Fourth: " + str(what_slider.get())
-        current_data=title + "\n" + blocksize + "    " + sth + "\n" + else_ + "    " + what
+        deltaFromSlider = delta_slider.get()
+        eFromSlider = e_slider.get()
+        lumFromSlider = lum_slider.get()
+        deltaFromSlider_txt = "Delta: " + str(delta_slider.get())
+        eFromSlider_txt = "E threshold: " + str(e_slider.get())
+        lumFromSlider_txt = "DCT threshold: " + str(lum_slider.get())
+        current_data=title + "\n" + blocksize + "    " + deltaFromSlider_txt + "    " + eFromSlider_txt + "    " + lumFromSlider_txt
         current_data_label.configure(text=current_data)
     def refresh_img(self):
         title = "Image data: "
@@ -222,7 +229,8 @@ class CurrentData:
 
 
 
-def do_animation(currentframe, window, wrap, time_start, time_elapsed, which):
+def do_animation(currentframe, window, wrap, time_start, time_elapsed, which, t, working_label, checksum_done = None, coefB_done = None, coefC_done = None, reconstr_done = None):
+    # global checksum_done, coefB_done, coefC_done, reconstr_done
     def do_image(which):
         if which=="code":
             global code_animation
@@ -232,17 +240,27 @@ def do_animation(currentframe, window, wrap, time_start, time_elapsed, which):
             global decode_animation
             wrap.delete('ani')
             wrap.create_image(80,100,image=decode_animation[currentframe], tag='ani')            
-    try:
-        do_image(which)
-    except IndexError:
-        currentframe = 0
-        do_image(which)
-    wrap.update_idletasks() #Force redraw
-    time_now = time.clock()
-    time_elapsed.set(secondformat(time_now-time_start))
-    currentframe = currentframe + 1
-    # Call myself again to keep the animation running in a loop
-    window.after(100, do_animation, currentframe, window, wrap, time_start, time_elapsed, which)
+    if t.is_alive():
+        try:
+            do_image(which)
+        except IndexError:
+            currentframe = 0
+            do_image(which)
+        wrap.update_idletasks() #Force redraw
+        time_now = time.clock()
+        time_elapsed.set(secondformat(time_now-time_start))
+        currentframe = currentframe + 1
+
+        if which=="decode":
+            if checksum_flag: markAsDone(checksum_done, "done")
+            if coefB_flag: markAsDone(coefB_done, "done")
+            if coefC_flag: markAsDone(coefC_done, "done")
+            if reconstr_flag: markAsDone(reconstr_done, "done")
+
+        # Call myself again to keep the animation running in a loop
+        window.after(100, do_animation, currentframe, window, wrap, time_start, time_elapsed, which, t, working_label)
+    else:
+        Handlers.finished(window, working_label)
 
 def secondformat(nr):
 
@@ -279,26 +297,32 @@ def markAsDone(what, w):
 
 code_animation = []
 decode_animation = []
-sizeOfBlock = 3
+sizeOfBlock = 8
+deltaFromSlider = 8
+eFromSlider = 10
+lumFromSlider = 5
 
 class Handlers:
+
+    def finished(self, window, label):
+        label.configure(text="Finished!")
+        a = Timer(2.0, window.destroy)
+        a.start()
+
     def perform(self):
         global code_animation, done, image
 
-        def finished(window, label):
-            label.configure(text="Finished!")
-            t = Timer(2.0, window.destroy)
-            t.start()
+        # tu byla funkcja finished
 
-        print "Called perform handler (which does almost nothing)!"
+        print "Called perform handler!"
         window = Toplevel(root)
-        t = Process(target=main.perform_compression, args=(image,sizeOfBlock,False))
+        t = Process(target=main.perform_compression, args=(image,sizeOfBlock,CALC,deltaFromSlider,eFromSlider,lumFromSlider))
         for i in range(0,77):
             if i in range(0,10):
                 num = "0" + str(i)
             else:
                 num = str(i)
-            filename = "animation/code" + num + ".gif"
+            filename = "animation/code" + num + ".png"
             code_animation.append(PhotoImage(file=filename))
         window.overrideredirect(1)
         working_label = Label(window, text=Strings.in_progress)
@@ -313,23 +337,26 @@ class Handlers:
         time_label.pack(expand=YES, fill=X)
         button_stop = Button(window, text="STOP", command=lambda:Handlers.destroywindow(window,t))
         button_stop.pack(expand=YES, fill=BOTH)
-        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "code")
+        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "code", t, working_label)
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
-
-
         t.start()
-
-        
         window.mainloop()
 
+    def authenticate(self):
+        global imageToDecode, sizeOfBlock, eFromSlider, deltaFromSlider, lumFromSlider, returnedFromAuth
+        abc = main.authenticate(imageToDecode, 8, CALC, deltaFromSlider, eFromSlider, lumFromSlider)
+        returnedFromAuth = abc
 
     def destroywindow(self, window, t):
         print "Stopped!"
         window.destroy()
-        t.terminate()
+        if t == False:
+            pass
+        else:
+            t.terminate()
 
     def decode(self):
-        global decode_animation, checksum_flag, coefC_flag, coefB_flag, done_flag, reconstr_flag, imageToDecode
+        global decode_animation, checksum_flag, coefC_flag, coefB_flag, reconstr_flag, imageToDecode
 
         # finish and close small window
         def finished(window, label):
@@ -337,14 +364,14 @@ class Handlers:
             t = Timer(2.0, window.destroy)
             t.start()
 
-        print "Called decode handler (which does almost nothing)!"
+        print "Called decode handler"
         window = Toplevel(root)
         for i in range(0,77):
             if i in range(0,10):
                 num = "0" + str(i)
             else:
                 num = str(i)
-            filename = "animation/decode" + num + ".gif"
+            filename = "animation/decode" + num + ".png"
             decode_animation.append(PhotoImage(file=filename))
         window.overrideredirect(1)
         working_label = Label(window, text=Strings.in_progress)
@@ -357,7 +384,7 @@ class Handlers:
         time_elapsed = StringVar()
         time_elapsed.set(secondformat(time_now-time_start))
 
-        none = PhotoImage(file="images/none.gif")
+        none = PhotoImage(file="images/none.png")
        
         checksum_done = Label(window,image=none)
         checksum_done.grid(row=3, column=0, sticky=E)
@@ -384,10 +411,6 @@ class Handlers:
         # wykonano coefB: 
         # markAsDone(coefB_done, "done")
         #
-        #
-
-
-        #
         # t = Timer(5.0, markAsDone, (checksum_done, "done"))
         # t.start()
 
@@ -401,19 +424,19 @@ class Handlers:
 
         # zakonczono?
         # wywolaj finished(window, working_label)
-        t4 = Timer(6.0, finished, (window, working_label))
-        t4.start()
+        # t4 = Timer(6.0, finished, (window, working_label))
+        # t4.start()
 
+        t = Process(target=main.reconstruction, args=(image,8,returnedFromAuth))
 
         time_label = Label(window, textvariable=time_elapsed)
         time_label.grid(row=7, column=0, columnspan=2)
-        button_stop = Button(window, text="STOP", command=lambda:Handlers.destroywindow(window))
+        button_stop = Button(window, text="STOP", command=lambda:Handlers.destroywindow(window, False))
         button_stop.grid(row=8, column=0, columnspan=2)
-        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "decode")
+        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "decode", t, working_label, checksum_done, coefB_done, coefC_done, reconstr_done)
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
+        t.start()
         window.mainloop()
-
-
 
 
 def preparePhotoImage(img):
@@ -437,15 +460,93 @@ Dialogue = Dialogue(root)
 CurrentData = CurrentData()
 Handlers = Handlers()
 root.title("TC-SEFR - Antoni Grzanka, Adam Niedzialkowski")
-root.geometry("700x600" + "+" + str(SCREEN_WIDTH/2 - 700/2) + "+" + str(SCREEN_HEIGHT/2 - 600/2) )
+root.geometry("950x650" + "+" + str(SCREEN_WIDTH/2 - 950/2) + "+" + str(SCREEN_HEIGHT/2 - 650/2) )
 root.resizable(0,0)
 
-done = PhotoImage(file="images/ok.gif")
+done = PhotoImage(file="images/ok.png")
 image = img("pictures/noimg.pgm")
 imageToDecode = img("pictures/noimg.pgm")
 
 
 bar = TabBar(root)
+
+
+# SETTINGS TAB
+settings_tab = Tab(root, "Settings")
+
+spaceSet_label = Label(settings_tab, text="                 ")
+spaceSet_label.grid(row=0,column=0,columnspan=4)
+
+data_label = Label(settings_tab, text=Strings.data_label)
+data_label.grid(row=1, column=0, columnspan=4)
+
+block_size_img = PhotoImage(file="images/settings_blocksize.png")
+block_size_imglabel = Label(settings_tab, image=block_size_img)
+block_size_label = Label(settings_tab, text="Blocksize", font="Verdana 10 bold")
+block_size_desc = Label(settings_tab, text="Size of block for \n both compressions.")
+block_size_slider = Scale(settings_tab, from_=4, to=16, orient=HORIZONTAL)
+block_size_imglabel.grid(row=2,column=0, padx=25)
+block_size_label.grid(row=3,column=0, padx=25)
+block_size_desc.grid(row=4,column=0,padx=25)
+block_size_slider.grid(row=5,column=0, padx=25)
+
+delta_img = PhotoImage(file="images/settings_delta.png")
+delta_imglabel = Label(settings_tab, image=delta_img)
+delta_label = Label(settings_tab, text="Delta", font="Verdana 10 bold")
+delta_desc = Label(settings_tab, text="Density of image coverage \n with grid.")
+delta_slider = Scale(settings_tab, from_=4, to=16, orient=HORIZONTAL)
+delta_imglabel.grid(row=2,column=1, padx=25)
+delta_label.grid(row=3,column=1, padx=25)
+delta_desc.grid(row=4,column=1,padx=25)
+delta_slider.grid(row=5,column=1, padx=25)
+
+e_img = PhotoImage(file="images/settings_blur.png")
+e_imglabel = Label(settings_tab, image=e_img)
+e_label = Label(settings_tab, text="E threshold", font="Verdana 10 bold")
+e_desc = Label(settings_tab, text="Responsible for precision of \n fractal compression.")
+e_slider = Scale(settings_tab, from_=5, to=15, orient=HORIZONTAL)
+e_imglabel.grid(row=2,column=2, padx=25)
+e_label.grid(row=3,column=2, padx=25)
+e_desc.grid(row=4,column=2,padx=25)
+e_slider.grid(row=5,column=2, padx=25)
+
+
+lum_img = PhotoImage(file="images/settings_brightness.png")
+lum_imglabel = Label(settings_tab, image=lum_img)
+lum_label = Label(settings_tab, text="DCT threshold", font="Verdana 10 bold")
+lum_desc = Label(settings_tab, text="Responsible for precision of \n DCT coefficients.")
+lum_slider = Scale(settings_tab, from_=0, to=20, orient=HORIZONTAL)
+lum_imglabel.grid(row=2,column=3, padx=25)
+lum_label.grid(row=3,column=3, padx=25)
+lum_desc.grid(row=4,column=3,padx=25)
+lum_slider.grid(row=5,column=3, padx=25)
+
+
+block_size_slider.set(8)
+delta_slider.set(8)
+e_slider.set(10)
+lum_slider.set(5)
+block_size_slider.configure(state=STAN_SUWAKOW)
+delta_slider.configure(state=STAN_SUWAKOW)
+e_slider.configure(state=STAN_SUWAKOW)
+lum_slider.configure(state=STAN_SUWAKOW)
+
+
+spaceSet2_label = Label(settings_tab, text="                 ")
+spaceSet2_label.grid(row=6,column=0,columnspan=4)
+
+refresh_data_button = Button(settings_tab, text=Strings.save_data, command=CurrentData.refresh_opt)
+refresh_data_button.grid(row=7,column=0, columnspan=4)
+
+current_data="blah"
+
+current_data_label = Label(settings_tab, text=current_data, font="Verdana 10 bold")
+
+CurrentData.refresh_opt()
+
+current_data_label.grid(row=8,column=0,columnspan=4, pady=10)
+
+
 
 # ABOUT TAB
 about_tab = Tab(root, Strings.about_tab_name)
@@ -453,19 +554,19 @@ about_tab = Tab(root, Strings.about_tab_name)
 space2_label = Label(about_tab, text="                   ")
 space2_label.grid(row=0,column=0,columnspan=2)
  
-kt_logo = PhotoImage(file="images/ktlogo.gif")
+kt_logo = PhotoImage(file="images/ktlogo.png")
 kt_logo_label = Label(about_tab, image=kt_logo)
 kt_logo_label.grid(row=1,column=0, pady=10, sticky=N)
 
-iet_logo = PhotoImage(file="images/ietlogo.gif")
+iet_logo = PhotoImage(file="images/ietlogo.png")
 iet_logo_label = Label(about_tab, image=iet_logo)
-iet_logo_label.grid(row=2, column=0, pady=10, sticky=N)
+iet_logo_label.grid(row=2, column=0, pady=10 )
 
-agh_logo = PhotoImage(file="images/aghlogo.gif")
+agh_logo = PhotoImage(file="images/aghlogo.png")
 agh_logo_label = Label(about_tab, image=agh_logo)
-agh_logo_label.grid(row=3, column=0, pady=10, sticky=N)
+agh_logo_label.grid(row=3, column=0, rowspan=2, pady=10, sticky=N)
 
-space3_label = Label(about_tab, text= "   ")
+space3_label = Label(about_tab, text= "              ")
 space3_label.grid(row=0, column=1, rowspan=4)
 
 title_label = Label(about_tab, text=Strings.about_title, font="Verdana 10 bold")
@@ -474,9 +575,11 @@ title_label.grid(row=1, column=2, padx=30)
 opis_label = Label(about_tab, text=Strings.opis)
 opis_label.grid(row=2, column=2, rowspan=2, padx=30, sticky=N)
 
-git_logo = PhotoImage(file="images/gitlogo.gif")
+opis2_label = Label(about_tab, text="Self-embedding fragile watermarking based on DCT and fast fractal coding\nXuanping Zhang, Yangyang Xiao and Zhongmeng Zhao\nDOI 10.1007/s11042-014-1882-9\n", font="bold")
+opis2_label.grid(row=4, column=2, padx=30, sticky=N)
+git_logo = PhotoImage(file="images/gitlogo.png")
 git_button = Button(about_tab, image=git_logo, compound=LEFT, text=Strings.visit_git, command=lambda: webbrowser.open("https://github.com/adamnie/TC-SEFR"))
-git_button.grid(row=4, column=0, columnspan=3, sticky=S, pady=20)
+git_button.grid(row=5, column=0, columnspan=3, sticky=S, pady=20)
 
 # CODE AND SET WATERMARK
 code_tab = Tab(root, Strings.code_tab_name)
@@ -485,92 +588,83 @@ code_tab = Tab(root, Strings.code_tab_name)
 #image_thumb is the PhotoImage instance that is shown on screen (resized)
 image = img("pictures/noimg.pgm")
 image.setflags(write=True) 
-image_thumb = image.resize((256,256))
+image_thumb = image.resize((425,425))
 image_thumb = preparePhotoImage(image_thumb)
+
+spacecode_label = Label(code_tab, text="       \n            ")
+spacecode_label.grid(row=0,column=0,columnspan=3)
 
 img_code_label = Label(code_tab, image=image_thumb)
 img_code_label.image=image_thumb
-img_code_label.grid(row=2,column=2, rowspan=6, padx=50)
+img_code_label.grid(row=1,column=2, rowspan=6)
 
-space_label = Label(code_tab, text="                   ")
-space_label.grid(row=0,column=0,columnspan=3)
+compress_title_label = Label(code_tab, text="Perform compression", font="Verdana 15 bold")
+compress_title_label.grid(row=1,column=0, pady=30)
 
 open_button = Button(code_tab, text=Strings.load_file, command=lambda:Dialogue.openfilename("code"))
-open_button.grid(row=1,column=2)    
+open_button.grid(row=2,column=0, pady=10)   
 
-data_label = Label(code_tab, text=Strings.data_label)
-data_label.grid(row=2, column=0, columnspan=2)
+spacecode2_label = Label(code_tab, text="                   ")
+spacecode2_label.grid(row=0,column=1,rowspan=5)
 
-block_size_label = Label(code_tab, text=Strings.block_size_label)
-block_size_slider = Scale(code_tab, from_=2, to=8, orient=HORIZONTAL)
-block_size_label.grid(row=2,column=0)
-block_size_slider.grid(row=2,column=1)
-
-sth_label = Label(code_tab, text=Strings.block_size_label)
-sth_slider = Scale(code_tab, from_=2, to=6, orient=HORIZONTAL)
-sth_label.grid(row=3,column=0)
-sth_slider.grid(row=3,column=1)
-
-else_label = Label(code_tab, text=Strings.block_size_label)
-else_slider = Scale(code_tab, from_=2, to=6, orient=HORIZONTAL)
-else_label.grid(row=4,column=0)
-else_slider.grid(row=4,column=1)
-
-what_label = Label(code_tab, text=Strings.block_size_label)
-what_slider = Scale(code_tab, from_=2, to=6, orient=HORIZONTAL)
-what_label.grid(row=5,column=0)
-what_slider.grid(row=5,column=1)
-
-refresh_data_button = Button(code_tab, text=Strings.save_data, command=CurrentData.refresh_opt)
-refresh_data_button.grid(row=6,column=0, columnspan=2)
-
-current_data="blah"
 img_data = "blah"
-current_data_label = Label(code_tab, text=current_data)
 img_data_label = Label(code_tab, text=img_data)
-CurrentData.refresh_opt()
 CurrentData.refresh_img()
-current_data_label.grid(row=8,column=0,columnspan=2, pady=10)
-img_data_label.grid(row=8, column=2, pady=10)
+img_data_label.grid(row=3, column=0, pady=10)
 
 perform_button = Button(code_tab, text=Strings.button_code, command=Handlers.perform, state=DISABLED)
-perform_button.grid(row=9, column=0, columnspan=3)
+perform_button.grid(row=4, column=0, pady=10)
 
 # DECODE
 decode_tab = Tab(root, Strings.decode_tab_name)
 imageToDecode = img("pictures/noimg.pgm")
 imageToDecode.setflags(write=True) 
-imageToDecode_thumb = image.resize((256,256))
+imageToDecode_thumb = image.resize((425,425))
 imageToDecode_thumb = preparePhotoImage(imageToDecode_thumb)
 img_decode_label = Label(decode_tab, image=imageToDecode_thumb)
 img_decode_label.image=imageToDecode_thumb
-img_decode_label.grid(row=2,column=2, rowspan=6, padx=50)
+img_decode_label.grid(row=1,column=2,rowspan=6)
 
-
-spaceDecode_label = Label(decode_tab, text="                   ")
+spaceDecode_label = Label(decode_tab, text="         \n          ")
 spaceDecode_label.grid(row=0,column=0,columnspan=3)
 
+decompress_title_label = Label(decode_tab, text="Perform decompression", font="Verdana 15 bold")
+decompress_title_label.grid(row=1,column=0, pady=30)
+
 openToDecode_button = Button(decode_tab, text=Strings.load_file, command=lambda:Dialogue.openfilename("decode"))
-openToDecode_button.grid(row=1,column=2, pady=10)    
+openToDecode_button.grid(row=2,column=0, pady=10)    
+
+spacedecode2_label = Label(decode_tab, text="                   ")
+spacedecode2_label.grid(row=0,column=1,rowspan=5)
 
 imgDecode_data = "blah"
 imgDecode_data_label = Label(decode_tab, text=imgDecode_data)
 CurrentData.refresh_imgDecode()
-imgDecode_data_label.grid(row=8, column=2, pady=10)
+imgDecode_data_label.grid(row=3, column=0, pady=10)
+
+
+authenticate_button = Button(decode_tab, text="Authenticate", command=Handlers.authenticate, state=DISABLED)
+authenticate_button.grid(row=4, column=0, pady=10)
 
 decode_button = Button(decode_tab, text=Strings.button_decode, command=Handlers.decode, state=DISABLED)
-decode_button.grid(row=9, column=0, columnspan=3)
+decode_button.grid(row=5, column=0, pady=10)
+
+
+
 
 # IMPORTING IMAGES
-code_tab_button = PhotoImage(file="images/button_code.gif")
-decode_tab_button = PhotoImage(file="images/button_decode.gif")
-about_tab_button = PhotoImage(file="images/button_about.gif")
+code_tab_button = PhotoImage(file="images/button_code.png")
+decode_tab_button = PhotoImage(file="images/button_decode.png")
+about_tab_button = PhotoImage(file="images/button_about.png")
+settings_tab_button = PhotoImage(file="images/button_settings.png")
 
 
 # ADDING TABS TO BAR
 bar.add(code_tab, code_tab_button, Strings.code_tab_name)
 bar.add(decode_tab, decode_tab_button, Strings.decode_tab_name)
+bar.add(settings_tab, settings_tab_button, "Settings")
 bar.add(about_tab, about_tab_button, Strings.about_tab_name)
+
 
 bar.show()
 
