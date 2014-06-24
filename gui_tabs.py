@@ -266,7 +266,7 @@ def do_animation(currentframe, window, wrap, time_start, time_elapsed, which, t,
         # Call myself again to keep the animation running in a loop
         window.after(100, do_animation, currentframe, window, wrap, time_start, time_elapsed, which, t, working_label)
     else:
-        Handlers.finished(window, working_label)
+        Handlers.finished(window, working_label, which)
 
 def secondformat(nr):
 
@@ -310,12 +310,16 @@ lumFromSlider = 5
 
 class Handlers:
 
-    def finished(self, window, label):
+    def finished(self, window, label, which):
         label.configure(text="Finished!")
         a = Timer(2.0, window.destroy)
         a.start()
-        savedas = "Saved as " + compressedname + ".pgm"
-        saved_compressed.configure(text=savedas)
+        if which=="code":
+            savedas = "Saved as " + compressedname + ".pgm"
+            saved_compressed.configure(text=savedas)
+        elif which=="decode":
+            savedas = "Saved as " + decompressedname + ".pgm"
+            saved_decompressed.configure(text=savedas)
 
     def perform(self):
         global code_animation, done, image
@@ -386,7 +390,7 @@ class Handlers:
         global decode_animation, checksum_flag, coefC_flag, coefB_flag, reconstr_flag, imageToDecode
 
         # finish and close small window
-        def finished(window, label):
+        def finished(window, label, which):
             label.configure(text="Finished!")
             t = Timer(2.0, window.destroy)
             t.start()
