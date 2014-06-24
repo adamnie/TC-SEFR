@@ -4,6 +4,7 @@
 from lib.img import *
 from lib.fractal import *
 import math
+import copy
 
 size = 8  #as for 8x8 blocks
 
@@ -60,3 +61,5 @@ class wm_img(img):
             for x in range(0,max_column):
                 indexes_list[y][x] = {"y": y*block_size, "x" : x*block_size}
         return indexes_list # zwraca wspolrzedne pierwszego i "ostatniego" piksela (tak naprawde to jest to pierwszy piksel nastepnego bloku, ale Python tak specyficznie przetwarza indeksy, ze tak jest logiczniej)
+    def copy(self):
+        return copy.deepcopy(self)

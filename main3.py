@@ -2,7 +2,6 @@
 import numpy as np
 import json
 import time
-import sys
 
 #my modules
 from lib.img import *
@@ -12,7 +11,6 @@ from lib.fractal import *
 from lib.embed import *
 from lib.reconstruct import *
 from lib.dct import *
-
 
 calculate = False # decide whether to calculate or load data
 R_block_size = 8
@@ -29,9 +27,12 @@ quantization_table = np.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
 
 image = img('./pictures/pepper.pgm')
 
-def perform_compression(image, R_block_size, calculate_flg):
+obrazyC = []
+obrazyB = []
 
-  B_coefs = []
+def perform_compression(image, R_block_size, calculate_flg):
+  global obrazyB
+  global obrazyC
   myfractal = fractal()
   myDCT = DCT()
   imageA = wm_img(image)
@@ -62,8 +63,10 @@ def perform_compression(image, R_block_size, calculate_flg):
   # performing dct on B type blocks
   for y in range(len(listB)):
       for x in range(len(listB[0])):
-          output = myDCT.perform_rosiek(imageB.get_block(listB[x][y],R_block_size))
-          imageB.save_block(output,listB[x][y]) 
+          output = myDCT.perform_rosiek(imageB.get_block(listB[x][y]))
+          # wykonuje DCT - UWAGA - zmienilem funkcje dct.perform(), tak, zeby nie zapisywala do listy a zwracala bezposrednio!
+          # output = np.divide(output,quantization_table).view(wm_img)
+          imageB.view(wm_img).save_block(output,listB[x][y])                       # nadpisuje otrzymane myfractal.coefficients DCT na 
 
   imageC = wm_img(image.shift_left())
   imageC.type = "C"
@@ -73,8 +76,10 @@ def perform_compression(image, R_block_size, calculate_flg):
       for y in range(len(listC[0])):
           output = myDCT.perform_rosiek(imageC.get_block(listC[x][y])) # 128 is offset required for DCT to work faster
           # output = np.divide(output,quantization_table).view(wm_img)
-          imageC.save_block(output,listC[x][y])
+          imageC.view(wm_img).save_block(output,listC[x][y])
 
+  obrazyB.append(imageB)
+  obrazyC.append(imageC)
   blocks_in_quad = len(listA)/2
 
   #saving compression data in the image
@@ -115,7 +120,7 @@ def perform_compression(image, R_block_size, calculate_flg):
 
         B_coefficients = get_quantization_coefficients(imageB.get_block(coords={'x':x_type_B,'y':y_type_B}))
         C_coefficients = get_quantization_coefficients(imageC.get_block(coords={'x':x_type_C,'y':y_type_C}))
-        B_coefs.append(B_coefficients)
+
         # converting to int
         B_coefficients = [int(coef) for coef in B_coefficients]
         C_coefficients = [int(coef) for coef in C_coefficients]
@@ -127,13 +132,18 @@ def perform_compression(image, R_block_size, calculate_flg):
         watermarked_block = embed_watermark(block_data_holder,compression_data,B_coefficients,C_coefficients) 
         watermarked_block = embed_checksum(watermarked_block)
 
-        imageA.save_block(watermarked_block,coords={'x':x,'y':y})
+        imageA.save_block(watermarked_block,{'x':x,'y':y})
 
   print "Embedding finished. "
-  comp_pic = "./pictures/" + imageA.name + "_watermarked.pgm"
+  comp_pic = "./pictures/" + imageA.name + "compressed.pgm"
   imageA.export(comp_pic)
+  return imageA
 
-def authenticate(image, R_block_size, E_threshold, dct_threshold):
+def authenticate(image, R_block_size, E_threshold):
+
+  global obrazyB
+  global obrazyC
+
   myfractal = fractal()
   myDCT = DCT()
   
@@ -150,9 +160,10 @@ def authenticate(image, R_block_size, E_threshold, dct_threshold):
   imageC.type = "C"
   listC = imageC.divide(R_block_size)
 
-  checksum_is_correct = np.zeros([len(listA),len(listA)])
+  imageA.save_block(np.zeros((150,150)),coords={'x':0,'y':0})
 
-  # imageA.save_block(np.zeros((70,70)),{'x':0,'y':0})
+  imageA.plot()
+  checksum_is_correct = np.zeros([len(listA),len(listA)])
 
   A_type_is_ok = np.zeros([len(listA),len(listA)])
   B_type_is_ok = np.zeros([len(listB),len(listB)])
@@ -242,7 +253,7 @@ def authenticate(image, R_block_size, E_threshold, dct_threshold):
 
         for k in range(6):
           # adding threshold, because somehow there's problem with saving and retriving image
-          if abs(B_recalculated[k] - data[1][k]) >= dct_threshold:
+          if abs(B_recalculated[k] - data[1][k]) >= 4:
             B_correct = False
 
         if B_correct:
@@ -286,7 +297,7 @@ def authenticate(image, R_block_size, E_threshold, dct_threshold):
 
           for k in range(6):
             # adding threshold, because somehow there's problem with saving and retriving image
-            if abs(C_recalculated[k] - data[2][k]) >= dct_threshold:
+            if abs(C_recalculated[k] - data[2][k]) >= 4:
               C_correct = False
 
           if C_correct:
@@ -315,7 +326,7 @@ def reconstruction(image, correctness):
   imageC.type = "C"
   listC = imageC.divide(R_block_size)
 
-  correctness_table = -1*correctness[0] + -1*correctness[1] + correctness[2]
+  correctness_table = correctness[0] + correctness[1] + correctness[2]
   checksum_is_correct = correctness[0]
   B_type_is_ok = correctness[1]
   C_type_is_ok = correctness[2]
@@ -323,7 +334,6 @@ def reconstruction(image, correctness):
   # A reconstruction
   imageA_new = wm_img(copy.deepcopy(image))
   imageA_new.type = 'A'
-
   for quadrant in range(4):
     mapper_q = imageA.quadrant_attr[quadrant]['mapper']
     mapper_offset = {'x': imageA.quadrant_attr[mapper_q]['x'], 'y': imageA.quadrant_attr[mapper_q]['y'] } 
@@ -340,20 +350,18 @@ def reconstruction(image, correctness):
         x_mapp = i_mapp * R_block_size
         y_mapp = j_mapp * R_block_size
 
-        blockA = imageA.get_block({'x':x,'y':y})
-        data = retrieve_watermark_and_checksum(blockA)
-        x_base = data[0]['x'] + quadrant_offset['x']
-        y_base = data[0]['y'] + quadrant_offset['y']
+        if correctness_table[i_mapp][j_mapp] < 0:
+          blockA = imageA.get_block({'x':x,'y':y})
+          data = retrieve_watermark_and_checksum(blockA)
+          x_base = data[0]['x'] + quadrant_offset['x']
+          y_base = data[0]['y'] + quadrant_offset['y']
 
-        base_block = imageA.get_block({'x': x_base,'y':y_base})
-        reconstructed_block = myreconstruct.block_A(base_block,data[0],R_block_size)
-        imageA_new.save_block(reconstructed_block,{'x':x_mapp,'y': y_mapp})
-
+          base_block = imageA.get_block({'x': x_base,'y':y_base})
+          reconstructed_block = myreconstruct.block_A(base_block,data[0],R_block_size)
+          imageA_new.save_block(reconstructed_block,{'x':x_mapp,'y': y_mapp})
   # Reconstruction B
-
   reconstruct_B = wm_img(copy.deepcopy(image))
   reconstruct_B.type = 'B'
-
   for quadrant in range(4):
     mapper_q_A = imageA.quadrant_attr[quadrant]['mapper']
     mapper_offset_A = {'x': imageA.quadrant_attr[mapper_q_A]['x'],
@@ -378,27 +386,25 @@ def reconstruction(image, correctness):
 
           x = i * R_block_size + quadrant_offset_A['x']
           y = j * R_block_size + quadrant_offset_A['y']
-
-          i_mapp = i + mapper_offset_B['x'] / R_block_size
-          j_mapp = j + mapper_offset_B['y'] / R_block_size
-
-          i_quad = i + quadrant_offset_A['x'] / R_block_size
-          j_quad = j + quadrant_offset_A['y'] / R_block_size
 
           x_type_B = i * R_block_size + mapper_offset_B['x']
           y_type_B = j * R_block_size + mapper_offset_B['y']
 
-          blockA = imageA.get_block({'x':x_type_B,'y':y_type_B})
-          data = retrieve_watermark_and_checksum(blockA)
-          data[1] = get_coefficients_from_normalized(data[1]) 
-          reconstruct_B.save_block(myDCT.reverse_rosiek(data[1]),{'x':x_type_B,'y':y_type_B})
+          if correctness_table[i_mapp][j_mapp] < 0:
+
+            blockA = imageA.get_block({'x':x,'y':y})
+            data = retrieve_watermark_and_checksum(blockA)
+
+            # recovered = myreconstruct.block_B_or_C(data[1],R_block_size)
+            reconstruct_B.save_block(myDCT.reverse_rosiek(data[1]),{'x':x_type_B,'y':y_type_B})
 
   imageB_new = reconstruct_B
+  imageB_new.plot()
 
-  # Reconstruction C
+  # Reconstruction B
   reconstruct_C = wm_img(copy.deepcopy(image))
   reconstruct_C.type = 'C'
-
+  
   for quadrant in range(4):
     mapper_q_A = imageA.quadrant_attr[quadrant]['mapper']
     mapper_offset_A = {'x': imageA.quadrant_attr[mapper_q_A]['x'],
@@ -424,37 +430,28 @@ def reconstruction(image, correctness):
           x = i * R_block_size + quadrant_offset_A['x']
           y = j * R_block_size + quadrant_offset_A['y']
 
-          i_mapp = i + mapper_offset_B['x'] / R_block_size
-          j_mapp = j + mapper_offset_B['y'] / R_block_size
-
-          i_quad = i + quadrant_offset_A['x'] / R_block_size
-          j_quad = j + quadrant_offset_A['y'] / R_block_size
-
           x_type_C = i * R_block_size + mapper_offset_C['x']
           y_type_C = j * R_block_size + mapper_offset_C['y']
+          
+          if correctness_table[i_mapp][j_mapp] < 0:
+            blockA = imageA.get_block({'x':x,'y':y})
+            data = retrieve_watermark_and_checksum(blockA)
 
-          blockA = imageA.get_block({'x':x_type_C,'y':y_type_C})
-          data = retrieve_watermark_and_checksum(blockA)
-          data[2] = get_coefficients_from_normalized(data[2]) 
-          reconstruct_C.save_block(myDCT.reverse_rosiek(data[2]),{'x':x_type_C,'y':y_type_C})
-
+            # recovered = myreconstruct.block_B_or_C(data[2],R_block_size)
+            # print myDCT.reverse(recovered)
+            reconstruct_C.save_block(myDCT.reverse_rosiek(data[2]),{'x':x_type_C,'y':y_type_C})
 
   imageC_new = reconstruct_C
-
-  imageA_new.plot()
-  imageB_new.plot()
   imageC_new.plot()
 
-  reconstructed_Image = myreconstruct.whole_img(imageA_new,imageB_new,imageC_new,correctness,R_block_size,blocks_in_quad) 
+  reconstructed_Image = (imageA_new + imageB_new + imageC_new) / 3 
   reconstructed_Image.plot()
 
-B = perform_compression(image,8,False)
+perform_compression(image,8,False)
 
-wm_image = img('./pictures/pepper_watermarked.pgm')
+wm_image = img('./pictures/peppercompressed.pgm')
 
-correctness_data = authenticate(wm_image,8,500,6)
-
-print correctness_data
+correctness_data = authenticate(image,8,500)
 
 reconstruction(wm_image,correctness_data)
 
