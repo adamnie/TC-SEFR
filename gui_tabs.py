@@ -14,6 +14,8 @@ from threading import Timer
 import main
 from multiprocessing import Process
 import global_flags
+import sys
+import os
 
 BASE = RAISED
 SELECTED = RIDGE
@@ -23,6 +25,9 @@ STAN_SUWAKOW = DISABLED # to change: NORMAL
 
 global_flags.init()
 returnedFromAuth = []
+
+compressedname = ""
+decompressedname = ""
 
 CALC = False
 
@@ -153,8 +158,11 @@ class Dialogue:
 
     def openfilename(self, which):
         #tkFileDialog
+        global compressedname
         try:
             filename = tkFileDialog.askopenfilename(**self.file_opt)
+            if filename[-3:] not in ["pgm","PGM","Pgm"]:
+                raise IOError
         except IOError:
             print Strings.unable_to_open  
         else:
@@ -166,7 +174,9 @@ class Dialogue:
                     print Strings.unable_to_open 
                 else:
                     image.setflags(write=True)
-                    image.nazwa = filename
+                    head, tail = os.path.split(filename)
+                    image.nazwa = tail
+                    compressedname = tail[0:-4] + "_coded"
                     image.format = filename[-3:]
                     # resizing to fit the screen - does not support other than square!
                     image_thumb = image.resize((425,425))
@@ -175,8 +185,8 @@ class Dialogue:
                     img_code_label.configure(image=image_thumb)
                     img_code_label.image=image_thumb
                     CurrentData.refresh_img()
-                    
                     perform_button.configure(state=NORMAL)
+                    saved_compressed.configure(text="")
 
             elif which=="decode":
                 try:
@@ -185,7 +195,9 @@ class Dialogue:
                     print Strings.unable_to_open 
                 else:
                     imageToDecode.setflags(write=True)
-                    imageToDecode.nazwa = filename
+                    head, tail = os.path.split(filename)
+                    imageToDecode.nazwa = tail
+                    decompressedname = tail[0:-4] + "_decoded"
                     imageToDecode.format = filename[-3:]
                     # resizing to fit the screen - does not support other than square!
                     imageToDecode_thumb = imageToDecode.resize((425,425))
@@ -195,7 +207,8 @@ class Dialogue:
                     img_decode_label.image=imageToDecode_thumb
                     CurrentData.refresh_imgDecode()
                     authenticate_button.configure(state=NORMAL)
-                    decode_button.configure(state=NORMAL)
+                    auth_label.configure(text="")
+                    saved_decompressed.configure(text="")
 
 class CurrentData:
     def refresh_opt(self):
@@ -229,7 +242,7 @@ class CurrentData:
 
 
 
-def do_animation(currentframe, window, wrap, time_start, time_elapsed, which, t, working_label, checksum_done = None, coefB_done = None, coefC_done = None, reconstr_done = None):
+def do_animation(currentframe, window, wrap, time_start, time_elapsed, which, t, working_label):
     # global checksum_done, coefB_done, coefC_done, reconstr_done
     def do_image(which):
         if which=="code":
@@ -251,11 +264,6 @@ def do_animation(currentframe, window, wrap, time_start, time_elapsed, which, t,
         time_elapsed.set(secondformat(time_now-time_start))
         currentframe = currentframe + 1
 
-        if which=="decode":
-            if checksum_flag: markAsDone(checksum_done, "done")
-            if coefB_flag: markAsDone(coefB_done, "done")
-            if coefC_flag: markAsDone(coefC_done, "done")
-            if reconstr_flag: markAsDone(reconstr_done, "done")
 
         # Call myself again to keep the animation running in a loop
         window.after(100, do_animation, currentframe, window, wrap, time_start, time_elapsed, which, t, working_label)
@@ -308,6 +316,8 @@ class Handlers:
         label.configure(text="Finished!")
         a = Timer(2.0, window.destroy)
         a.start()
+        savedas = "Saved as " + compressedname + ".pgm"
+        saved_compressed.configure(text=savedas)
 
     def perform(self):
         global code_animation, done, image
@@ -316,7 +326,7 @@ class Handlers:
 
         print "Called perform handler!"
         window = Toplevel(root)
-        t = Process(target=main.perform_compression, args=(image,sizeOfBlock,CALC,deltaFromSlider,eFromSlider,lumFromSlider))
+        t = Process(target=main.perform_compression, args=(image,sizeOfBlock,CALC,deltaFromSlider,eFromSlider,lumFromSlider, compressedname))
         for i in range(0,77):
             if i in range(0,10):
                 num = "0" + str(i)
@@ -344,8 +354,27 @@ class Handlers:
 
     def authenticate(self):
         global imageToDecode, sizeOfBlock, eFromSlider, deltaFromSlider, lumFromSlider, returnedFromAuth
-        abc = main.authenticate(imageToDecode, 8, CALC, deltaFromSlider, eFromSlider, lumFromSlider)
+        abc = main.authenticate(imageToDecode, 8, CALC, deltaFromSlider, eFromSlider, lumFromSlider, decompressedname)
         returnedFromAuth = abc
+        ones = [0,0,0]
+        count = [0,0,0]
+        wat = 0
+        for block in abc:
+            ones[wat] = 0
+            count[wat] = 0
+            for i in block:
+                for j in i:
+                        count[wat] += 1
+                        if j == 1:
+                            ones[wat] +=1
+            wat +=1
+        first = ones[0]/float(count[0])
+        second = ones[1]/float(count[1])
+        third = ones[2]/float(count[2])
+        auth_text = "Checksum: " + str(ones[0]) + "/" + str(count[0]) + "\nWatermarks: \nA: " + str(ones[1]) + "/" + str(count[1]) + "  B: " + str(ones[1]) + "/" + str(count[1]) + "  C: " + str(ones[2]) + "/" + str(count[2])
+        auth_label.configure(text=auth_text)
+        decode_button.configure(state=NORMAL)
+
 
     def destroywindow(self, window, t):
         print "Stopped!"
@@ -363,6 +392,8 @@ class Handlers:
             label.configure(text="Finished!")
             t = Timer(2.0, window.destroy)
             t.start()
+            savedas = "Saved as " + decompressedname + ".pgm"
+            saved_decompressed.configure(text=savedas)
 
         print "Called decode handler"
         window = Toplevel(root)
@@ -384,27 +415,27 @@ class Handlers:
         time_elapsed = StringVar()
         time_elapsed.set(secondformat(time_now-time_start))
 
-        none = PhotoImage(file="images/none.png")
+        # none = PhotoImage(file="images/none.png")
        
-        checksum_done = Label(window,image=none)
-        checksum_done.grid(row=3, column=0, sticky=E)
-        checksum = Label(window, text="Checksum... ")
-        checksum.grid(row=3,column=1, sticky=W)
+        # checksum_done = Label(window,image=none)
+        # checksum_done.grid(row=3, column=0, sticky=E)
+        # checksum = Label(window, text="Checksum... ")
+        # checksum.grid(row=3,column=1, sticky=W)
 
-        coefB_done = Label(window, image=none)
-        coefB_done.grid(row=4,column=0, sticky=E)
-        coefB = Label(window, text="Calculating B... ")
-        coefB.grid(row=4,column=1, sticky=W)
+        # coefB_done = Label(window, image=none)
+        # coefB_done.grid(row=4,column=0, sticky=E)
+        # coefB = Label(window, text="Calculating B... ")
+        # coefB.grid(row=4,column=1, sticky=W)
 
-        coefC_done = Label(window, image=none)
-        coefC_done.grid(row=5,column=0, sticky=E)
-        coefC = Label(window, text="Calculating C... ")
-        coefC.grid(row=5,column=1, sticky=W)
+        # coefC_done = Label(window, image=none)
+        # coefC_done.grid(row=5,column=0, sticky=E)
+        # coefC = Label(window, text="Calculating C... ")
+        # coefC.grid(row=5,column=1, sticky=W)
 
-        reconstr_done = Label(window, image=none)
-        reconstr_done.grid(row=6, column=0, sticky=E)
-        reconstr = Label(window, text="Reconstructing...")
-        reconstr.grid(row=6,column=1, sticky=W)
+        # reconstr_done = Label(window, image=none)
+        # reconstr_done.grid(row=6, column=0, sticky=E)
+        # reconstr = Label(window, text="Reconstructing...")
+        # reconstr.grid(row=6,column=1, sticky=W)
 
         # przyklady "zapalania" poszczegolnych "lampek" 
         #
@@ -433,7 +464,7 @@ class Handlers:
         time_label.grid(row=7, column=0, columnspan=2)
         button_stop = Button(window, text="STOP", command=lambda:Handlers.destroywindow(window, False))
         button_stop.grid(row=8, column=0, columnspan=2)
-        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "decode", t, working_label, checksum_done, coefB_done, coefC_done, reconstr_done)
+        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "decode", t, working_label)
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
         t.start()
         window.mainloop()
@@ -615,6 +646,9 @@ img_data_label.grid(row=3, column=0, pady=10)
 perform_button = Button(code_tab, text=Strings.button_code, command=Handlers.perform, state=DISABLED)
 perform_button.grid(row=4, column=0, pady=10)
 
+saved_compressed = Label(code_tab, text="")
+saved_compressed.grid(row=5, column=0, pady=10)
+
 # DECODE
 decode_tab = Tab(root, Strings.decode_tab_name)
 imageToDecode = img("pictures/noimg.pgm")
@@ -646,8 +680,14 @@ imgDecode_data_label.grid(row=3, column=0, pady=10)
 authenticate_button = Button(decode_tab, text="Authenticate", command=Handlers.authenticate, state=DISABLED)
 authenticate_button.grid(row=4, column=0, pady=10)
 
+auth_label = Label(decode_tab, text="")
+auth_label.grid(row=5, column=0)
+
 decode_button = Button(decode_tab, text=Strings.button_decode, command=Handlers.decode, state=DISABLED)
-decode_button.grid(row=5, column=0, pady=10)
+decode_button.grid(row=6, column=0)
+
+saved_decompressed = Label(decode_tab, text="")
+saved_decompressed.grid(row=7, column=0)
 
 
 
@@ -668,4 +708,7 @@ bar.add(about_tab, about_tab_button, Strings.about_tab_name)
 
 bar.show()
 
-root.mainloop()
+try:
+    root.mainloop()
+except KeyboardInterrupt:
+    sys.exit()
