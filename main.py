@@ -143,7 +143,6 @@ def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_thr
   listC = imageC.divide(R_block_size)
 
   checksum_is_correct = np.zeros([len(listA),len(listA)])
-  imageA.plot()
 
   A_type_is_ok = np.zeros([len(listA),len(listA)])
   B_type_is_ok = np.zeros([len(listB),len(listB)])
@@ -446,7 +445,6 @@ def reconstruction(image, R_block_size,correctness,filename):
   imageC_new = reconstruct_C
 
   reconstructed_Image = myreconstruct.whole_img(imageA,imageA_new,imageB_new,imageC_new,correctness,R_block_size,blocks_in_quad) 
-  reconstructed_Image.plot()
 
   reconstructed_Image.export(filename+'_reconstructed_'+'.pgm')
 
