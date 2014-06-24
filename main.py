@@ -29,7 +29,7 @@ quantization_table = np.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
 
 image = img('./pictures/pepper.pgm')
 
-def perform_compression(image, R_block_size, calculate_flg):
+def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold):
 
   B_coefs = []
   myfractal = fractal()
@@ -115,7 +115,6 @@ def perform_compression(image, R_block_size, calculate_flg):
 
         B_coefficients = get_quantization_coefficients(imageB.get_block(coords={'x':x_type_B,'y':y_type_B}))
         C_coefficients = get_quantization_coefficients(imageC.get_block(coords={'x':x_type_C,'y':y_type_C}))
-        B_coefs.append(B_coefficients)
         # converting to int
         B_coefficients = [int(coef) for coef in B_coefficients]
         C_coefficients = [int(coef) for coef in C_coefficients]
@@ -133,7 +132,7 @@ def perform_compression(image, R_block_size, calculate_flg):
   comp_pic = "./pictures/" + imageA.name + "_watermarked.pgm"
   imageA.export(comp_pic)
 
-def authenticate(image, R_block_size, E_threshold, dct_threshold):
+def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold):
   myfractal = fractal()
   myDCT = DCT()
   
@@ -172,7 +171,6 @@ def authenticate(image, R_block_size, E_threshold, dct_threshold):
           # output = np.divide(output,quantization_table).view(wm_img)
           imageC.view(wm_img).save_block(output,listC[x][y])
 
-  ret_comp_data = []
 
   # checking correctnes of checksum
   print "Start checking data ..."
@@ -180,11 +178,12 @@ def authenticate(image, R_block_size, E_threshold, dct_threshold):
     mapper_q = imageA.quadrant_attr[quadrant]['mapper']
     mapper_offset = {'x': imageA.quadrant_attr[mapper_q]['x'], 'y': imageA.quadrant_attr[mapper_q]['y'] } 
     quadrant_offset = {'x': imageA.quadrant_attr[quadrant]['x'], 'y': imageA.quadrant_attr[quadrant]['y'] }
-    ret_comp_data.append([])
     for i in range(blocks_in_quad):
-      ret_comp_data[quadrant].append([])
-      for j in range(blocks_in_quad):  
-        ret_comp_data[quadrant][i].append([])
+      for j in range(blocks_in_quad):
+        # wchodzimy do kazdego kwadwarntu
+        # nastepnie ustawiamy odpowiedniego offseta, odpowiedniego
+        # dla kwarantu, zeby mozna bylo operowac na calym obrazie
+        # wyciagamy z kazdego bloku checksum i go przeliczamy czy sie nie zmienil
         i_quad = i + quadrant_offset['x'] / R_block_size
         j_quad = j + quadrant_offset['y'] / R_block_size
 
@@ -196,14 +195,15 @@ def authenticate(image, R_block_size, E_threshold, dct_threshold):
 
         block = imageA.get_block({'x':x,'y':y})
         block_mapped = imageA.get_block({'x':x_type_A,'y':y_type_A})
-        
-        ret_comp_data[quadrant][i][j].append(retrieve_watermark_and_checksum(block))
-        if errors_occured(block,ret_comp_data[quadrant][i][j][0][3]):
+         
+        data = retrieve_watermark_and_checksum(block)
+
+        if errors_occured(block,data[3]):
           checksum_is_correct[i_quad][j_quad] = -1
         else:
           checksum_is_correct[i_quad][j_quad] = 1
 
-  # checking correctness of E data        
+        # checking correctness of E data        
 
   # checking correctness of B blocks info 
   for quadrant in range(4):
@@ -219,6 +219,12 @@ def authenticate(image, R_block_size, E_threshold, dct_threshold):
                        'y': imageB.quadrant_attr[mapper_q_B]['y'] } 
     quadrant_offset_B = {'x': imageB.quadrant_attr[quadrant]['x'],
                          'y': imageB.quadrant_attr[quadrant]['y'] }
+
+    mapper_q_C = imageC.quadrant_attr[quadrant]['mapper']
+    mapper_offset_C = {'x': imageC.quadrant_attr[mapper_q_C]['x'],
+                       'y': imageC.quadrant_attr[mapper_q_C]['y'] } 
+    quadrant_offset_C = {'x': imageC.quadrant_attr[quadrant]['x'],
+                         'y': imageC.quadrant_attr[quadrant]['y'] }
     
     for i in range(blocks_in_quad):
       for j in range(blocks_in_quad):    
@@ -227,11 +233,11 @@ def authenticate(image, R_block_size, E_threshold, dct_threshold):
         i_quad = i + quadrant_offset_A['x'] / R_block_size
         j_quad = j + quadrant_offset_A['y'] / R_block_size
 
-        x = i * R_block_size + quadrant_offset_A['x']
-        y = j * R_block_size + quadrant_offset_A['y']
+        x = i * R_block_size + quadrant_offset_B['x']
+        y = j * R_block_size + quadrant_offset_B['y']
 
-        x_type_B = i * R_block_size + mapper_offset_B['x']
-        y_type_B = j * R_block_size + mapper_offset_B['y']
+        x_type_B = i * R_block_size + mapper_offset_C['x']
+        y_type_B = j * R_block_size + mapper_offset_C['y']
 
         blockA = imageA.get_block({'x':x,'y':y})
         blockB = imageB.get_block({'x':x_type_B,'y':y_type_B})
@@ -242,6 +248,7 @@ def authenticate(image, R_block_size, E_threshold, dct_threshold):
 
         for k in range(6):
           # adding threshold, because somehow there's problem with saving and retriving image
+          print abs(B_recalculated[k] - data[1][k])
           if abs(B_recalculated[k] - data[1][k]) >= dct_threshold:
             B_correct = False
 
@@ -297,7 +304,7 @@ def authenticate(image, R_block_size, E_threshold, dct_threshold):
   correctness_table = checksum_is_correct + B_type_is_ok + C_type_is_ok
   return [checksum_is_correct,B_type_is_ok,C_type_is_ok]
 
-def reconstruction(image, correctness):
+def reconstruction(image, R_block_size,correctness):
   myfractal = fractal()
   myreconstruct = reconstruct()
   myDCT = DCT()
@@ -315,7 +322,7 @@ def reconstruction(image, correctness):
   imageC.type = "C"
   listC = imageC.divide(R_block_size)
 
-  correctness_table = -1*correctness[0] + -1*correctness[1] + correctness[2]
+  correctness_table = correctness[0] + correctness[1] + correctness[2]
   checksum_is_correct = correctness[0]
   B_type_is_ok = correctness[1]
   C_type_is_ok = correctness[2]
@@ -331,23 +338,20 @@ def reconstruction(image, correctness):
     for i in range(blocks_in_quad):
       for j in range(blocks_in_quad): 
 
-        i_mapp = i + mapper_offset['x'] / R_block_size
-        j_mapp = j + mapper_offset['y'] / R_block_size
-
         x = i * R_block_size + quadrant_offset['x']
         y = j * R_block_size + quadrant_offset['y']
 
-        x_mapp = i_mapp * R_block_size
-        y_mapp = j_mapp * R_block_size
+        x_mapp = i * R_block_size + mapper_offset['x']
+        y_mapp = j * R_block_size + mapper_offset['y']
 
-        blockA = imageA.get_block({'x':x,'y':y})
+        blockA = imageA.get_block({'x':x_mapp,'y':y_mapp})
         data = retrieve_watermark_and_checksum(blockA)
-        x_base = data[0]['x'] + quadrant_offset['x']
-        y_base = data[0]['y'] + quadrant_offset['y']
+        x_base = data[0]['x'] + mapper_offset['x']
+        y_base = data[0]['y'] + mapper_offset['y']
 
         base_block = imageA.get_block({'x': x_base,'y':y_base})
         reconstructed_block = myreconstruct.block_A(base_block,data[0],R_block_size)
-        imageA_new.save_block(reconstructed_block,{'x':x_mapp,'y': y_mapp})
+        imageA_new.save_block(reconstructed_block,{'x':x,'y': y})
 
   # Reconstruction B
 
@@ -448,14 +452,14 @@ def reconstruction(image, correctness):
   reconstructed_Image = myreconstruct.whole_img(imageA_new,imageB_new,imageC_new,correctness,R_block_size,blocks_in_quad) 
   reconstructed_Image.plot()
 
-B = perform_compression(image,8,False)
+B = perform_compression(image,8,False,10,10,10)
 
 wm_image = img('./pictures/pepper_watermarked.pgm')
 
-correctness_data = authenticate(wm_image,8,500,6)
+correctness_data = authenticate(wm_image,8,5,5,5,5)
 
 print correctness_data
 
-reconstruction(wm_image,correctness_data)
+reconstruction(wm_image,8,correctness_data)
 
 

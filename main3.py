@@ -175,13 +175,13 @@ def authenticate(image, R_block_size, E_threshold):
       for y in range(len(listB[0])):
           output = myDCT.perform_rosiek(imageB.get_block(listB[x][y])) # 128 is offset required for DCT to work faster
           # output = np.divide(output,quantization_table).view(wm_img)
-          imageB.view(wm_img).save_block(output,listB[x][y])  
+          imageB.save_block(output,listB[x][y])  
 
   for x in range(len(listC)):
       for y in range(len(listC[0])):
           output = myDCT.perform_rosiek(imageC.get_block(listC[x][y])) # 128 is offset required for DCT to work faster
           # output = np.divide(output,quantization_table).view(wm_img)
-          imageC.view(wm_img).save_block(output,listC[x][y])
+          imageC.save_block(output,listC[x][y])
 
   ret_comp_data = []
 
@@ -404,7 +404,7 @@ def reconstruction(image, correctness):
   # Reconstruction B
   reconstruct_C = wm_img(copy.deepcopy(image))
   reconstruct_C.type = 'C'
-  
+
   for quadrant in range(4):
     mapper_q_A = imageA.quadrant_attr[quadrant]['mapper']
     mapper_offset_A = {'x': imageA.quadrant_attr[mapper_q_A]['x'],

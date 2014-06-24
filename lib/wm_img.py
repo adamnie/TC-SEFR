@@ -16,9 +16,9 @@ class wm_img(img):
         obj = img.view(cls)
         obj.quadrant_attr = [
         {"nr" : 0, "x" : img.width()/2, "y" : 0},
-        {"nr" : 1, "x" : img.width()/2, "y" : img.height()/2}, 
+        {"nr" : 1, "x" : 0, "y" : 0}, 
         {"nr" : 2, "x" : 0, "y" : img.height()/2},
-        {"nr" : 3, "x" : 0, "y" : 0}]
+        {"nr" : 3, "x" : img.width()/2, "y" : img.height()/2}]
         return obj
 
     def __init__(self, img):
