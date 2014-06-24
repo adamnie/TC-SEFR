@@ -330,7 +330,7 @@ class Handlers:
                 num = "0" + str(i)
             else:
                 num = str(i)
-            filename = "animation/code" + num + ".png"
+            filename = "animation/code" + num + ".gif"
             code_animation.append(PhotoImage(file=filename))
         window.overrideredirect(1)
         working_label = Label(window, text=Strings.in_progress)
@@ -400,7 +400,7 @@ class Handlers:
                 num = "0" + str(i)
             else:
                 num = str(i)
-            filename = "animation/decode" + num + ".png"
+            filename = "animation/decode" + num + ".gif"
             decode_animation.append(PhotoImage(file=filename))
         window.overrideredirect(1)
         working_label = Label(window, text=Strings.in_progress)
@@ -413,7 +413,7 @@ class Handlers:
         time_elapsed = StringVar()
         time_elapsed.set(secondformat(time_now-time_start))
 
-        # none = PhotoImage(file="images/none.png")
+        # none = PhotoImage(file="images/none.gif")
        
         # checksum_done = Label(window,image=none)
         # checksum_done.grid(row=3, column=0, sticky=E)
@@ -492,7 +492,7 @@ root.title("TC-SEFR - Antoni Grzanka, Adam Niedzialkowski")
 root.geometry("950x650" + "+" + str(SCREEN_WIDTH/2 - 950/2) + "+" + str(SCREEN_HEIGHT/2 - 650/2) )
 root.resizable(0,0)
 
-done = PhotoImage(file="images/ok.png")
+done = PhotoImage(file="images/ok.gif")
 image = img("pictures/noimg.pgm")
 imageToDecode = img("pictures/noimg.pgm")
 
@@ -509,7 +509,7 @@ spaceSet_label.grid(row=0,column=0,columnspan=4)
 data_label = Label(settings_tab, text=Strings.data_label)
 data_label.grid(row=1, column=0, columnspan=4)
 
-block_size_img = PhotoImage(file="images/settings_blocksize.png")
+block_size_img = PhotoImage(file="images/settings_blocksize.gif")
 block_size_imglabel = Label(settings_tab, image=block_size_img)
 block_size_label = Label(settings_tab, text="Blocksize", font="Verdana 10 bold")
 block_size_desc = Label(settings_tab, text="Size of block for \n both compressions.")
@@ -519,7 +519,7 @@ block_size_label.grid(row=3,column=0, padx=25)
 block_size_desc.grid(row=4,column=0,padx=25)
 block_size_slider.grid(row=5,column=0, padx=25)
 
-delta_img = PhotoImage(file="images/settings_delta.png")
+delta_img = PhotoImage(file="images/settings_delta.gif")
 delta_imglabel = Label(settings_tab, image=delta_img)
 delta_label = Label(settings_tab, text="Delta", font="Verdana 10 bold")
 delta_desc = Label(settings_tab, text="Density of image coverage \n with grid.")
@@ -529,7 +529,7 @@ delta_label.grid(row=3,column=1, padx=25)
 delta_desc.grid(row=4,column=1,padx=25)
 delta_slider.grid(row=5,column=1, padx=25)
 
-e_img = PhotoImage(file="images/settings_blur.png")
+e_img = PhotoImage(file="images/settings_blur.gif")
 e_imglabel = Label(settings_tab, image=e_img)
 e_label = Label(settings_tab, text="E threshold", font="Verdana 10 bold")
 e_desc = Label(settings_tab, text="Responsible for precision of \n fractal compression.")
@@ -540,7 +540,7 @@ e_desc.grid(row=4,column=2,padx=25)
 e_slider.grid(row=5,column=2, padx=25)
 
 
-lum_img = PhotoImage(file="images/settings_brightness.png")
+lum_img = PhotoImage(file="images/settings_brightness.gif")
 lum_imglabel = Label(settings_tab, image=lum_img)
 lum_label = Label(settings_tab, text="DCT threshold", font="Verdana 10 bold")
 lum_desc = Label(settings_tab, text="Responsible for precision of \n DCT coefficients.")
@@ -583,15 +583,15 @@ about_tab = Tab(root, Strings.about_tab_name)
 space2_label = Label(about_tab, text="                   ")
 space2_label.grid(row=0,column=0,columnspan=2)
  
-kt_logo = PhotoImage(file="images/ktlogo.png")
+kt_logo = PhotoImage(file="images/ktlogo.gif")
 kt_logo_label = Label(about_tab, image=kt_logo)
 kt_logo_label.grid(row=1,column=0, pady=10, sticky=N)
 
-iet_logo = PhotoImage(file="images/ietlogo.png")
+iet_logo = PhotoImage(file="images/ietlogo.gif")
 iet_logo_label = Label(about_tab, image=iet_logo)
 iet_logo_label.grid(row=2, column=0, pady=10 )
 
-agh_logo = PhotoImage(file="images/aghlogo.png")
+agh_logo = PhotoImage(file="images/aghlogo.gif")
 agh_logo_label = Label(about_tab, image=agh_logo)
 agh_logo_label.grid(row=3, column=0, rowspan=2, pady=10, sticky=N)
 
@@ -606,7 +606,7 @@ opis_label.grid(row=2, column=2, rowspan=2, padx=30, sticky=N)
 
 opis2_label = Label(about_tab, text="Self-embedding fragile watermarking based on DCT and fast fractal coding\nXuanping Zhang, Yangyang Xiao and Zhongmeng Zhao\nDOI 10.1007/s11042-014-1882-9\n", font="bold")
 opis2_label.grid(row=4, column=2, padx=30, sticky=N)
-git_logo = PhotoImage(file="images/gitlogo.png")
+git_logo = PhotoImage(file="images/gitlogo.gif")
 git_button = Button(about_tab, image=git_logo, compound=LEFT, text=Strings.visit_git, command=lambda: webbrowser.open("https://github.com/adamnie/TC-SEFR"))
 git_button.grid(row=5, column=0, columnspan=3, sticky=S, pady=20)
 
@@ -691,10 +691,10 @@ saved_decompressed.grid(row=7, column=0)
 
 
 # IMPORTING IMAGES
-code_tab_button = PhotoImage(file="images/button_code.png")
-decode_tab_button = PhotoImage(file="images/button_decode.png")
-about_tab_button = PhotoImage(file="images/button_about.png")
-settings_tab_button = PhotoImage(file="images/button_settings.png")
+code_tab_button = PhotoImage(file="images/button_code.gif")
+decode_tab_button = PhotoImage(file="images/button_decode.gif")
+about_tab_button = PhotoImage(file="images/button_about.gif")
+settings_tab_button = PhotoImage(file="images/button_settings.gif")
 
 
 # ADDING TABS TO BAR
