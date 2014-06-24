@@ -13,10 +13,6 @@ from lib.embed import *
 from lib.reconstruct import *
 from lib.dct import *
 
-
-calculate = False # decide whether to calculate or load data
-R_block_size = 8
-
 quantization_table = np.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
                                    [12, 13, 14, 19, 26, 58, 60, 55],
                                    [14, 13, 16, 24, 40, 57, 69, 56],
@@ -26,11 +22,10 @@ quantization_table = np.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
                                    [49, 64, 78, 87, 103, 121, 120, 101],
                                    [72, 92, 95, 98, 112, 100, 103, 99]]);
 
-
-image = img('pictures/pepper.pgm')
-
 def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold,filename):
 
+  ## default calculate
+  calculate_flg = True
   B_coefs = []
   myfractal = fractal()
   myDCT = DCT()
@@ -135,8 +130,6 @@ def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, 
 def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold):
   myfractal = fractal()
   myDCT = DCT()
-
-  image.save_block(np.zeros((70,70)),{'x':0,'y':0})
   
   imageA = wm_img(image)
   imageA.type = 'A'
@@ -152,7 +145,6 @@ def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_thr
   listC = imageC.divide(R_block_size)
 
   checksum_is_correct = np.zeros([len(listA),len(listA)])
-  imageA.plot()
 
   A_type_is_ok = np.zeros([len(listA),len(listA)])
   B_type_is_ok = np.zeros([len(listB),len(listB)])
@@ -455,19 +447,6 @@ def reconstruction(image, R_block_size,correctness,filename):
   imageC_new = reconstruct_C
 
   reconstructed_Image = myreconstruct.whole_img(imageA,imageA_new,imageB_new,imageC_new,correctness,R_block_size,blocks_in_quad) 
-  reconstructed_Image.plot()
 
   reconstructed_Image.export(filename+'_reconstructed_'+'.pgm')
-
-nazwa = 'pepper'
-B = perform_compression(image,8,False,10,10,10,nazwa)
-
-wm_image = img('pictures/pepper_watermarked.pgm')
-
-correctness_data = authenticate(wm_image,8,5,5,5,5)
-
-print correctness_data
-
-reconstruction(wm_image,8,correctness_data,nazwa)
-
 
