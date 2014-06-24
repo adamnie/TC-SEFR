@@ -156,7 +156,7 @@ class Dialogue:
 
     def openfilename(self, which):
         #tkFileDialog
-        global compressedname
+        global compressedname, decompressedname
         try:
             filename = tkFileDialog.askopenfilename(**self.file_opt)
             if filename[-3:] not in ["pgm","PGM","Pgm"]:
@@ -174,7 +174,7 @@ class Dialogue:
                     image.setflags(write=True)
                     head, tail = os.path.split(filename)
                     image.nazwa = tail
-                    compressedname = tail[0:-4] + "_coded"
+                    compressedname = tail[0:-4]
                     image.format = filename[-3:]
                     # resizing to fit the screen - does not support other than square!
                     image_thumb = image.resize((425,425))
@@ -195,7 +195,7 @@ class Dialogue:
                     imageToDecode.setflags(write=True)
                     head, tail = os.path.split(filename)
                     imageToDecode.nazwa = tail
-                    decompressedname = tail[0:-4] + "_decoded"
+                    decompressedname = tail[0:-4]
                     imageToDecode.format = filename[-3:]
                     # resizing to fit the screen - does not support other than square!
                     imageToDecode_thumb = imageToDecode.resize((425,425))
@@ -315,10 +315,10 @@ class Handlers:
         a = Timer(2.0, window.destroy)
         a.start()
         if which=="code":
-            savedas = "Saved as " + compressedname + ".pgm"
+            savedas = "Saved as " + compressedname + "_watermarked.pgm"
             saved_compressed.configure(text=savedas)
         elif which=="decode":
-            savedas = "Saved as " + decompressedname + ".pgm"
+            savedas = "Saved as " + decompressedname + "_reconstructed.pgm"
             saved_decompressed.configure(text=savedas)
 
     def perform(self):
@@ -459,8 +459,7 @@ class Handlers:
         # wywolaj finished(window, working_label)
         # t4 = Timer(6.0, finished, (window, working_label))
         # t4.start()
-
-        t = Process(target=main.reconstruction, args=(image,8,returnedFromAuth, decompressedname))
+        t = Process(target=main.reconstruction, args=(imageToDecode,8,returnedFromAuth, decompressedname))
 
         time_label = Label(window, textvariable=time_elapsed)
         time_label.grid(row=7, column=0, columnspan=2)

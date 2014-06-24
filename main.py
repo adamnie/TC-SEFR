@@ -3,6 +3,7 @@ import numpy as np
 import json
 import time
 import sys
+import copy
 
 #my modules
 from lib.img import *
@@ -124,7 +125,7 @@ def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, 
         imageA.save_block(watermarked_block,coords={'x':x,'y':y})
 
   print "Embedding finished. "
-  comp_pic = "./pictures/" + filename + "_watermarked.pgm"
+  comp_pic = filename + "_watermarked.pgm"
   imageA.export(comp_pic)
 
 def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold):
@@ -447,6 +448,5 @@ def reconstruction(image, R_block_size,correctness,filename):
   imageC_new = reconstruct_C
 
   reconstructed_Image = myreconstruct.whole_img(imageA,imageA_new,imageB_new,imageC_new,correctness,R_block_size,blocks_in_quad) 
-
-  reconstructed_Image.export(filename+'_reconstructed_'+'.pgm')
+  reconstructed_Image.export(filename+'_reconstructed'+'.pgm')
 
