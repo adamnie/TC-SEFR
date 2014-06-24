@@ -13,18 +13,19 @@ import webbrowser
 from threading import Timer
 import main
 from multiprocessing import Process
+import global_flags
 
 BASE = RAISED
 SELECTED = RIDGE
 LANGUAGE = "EN"
 VERBOSE = True
+STAN_SUWAKOW = DISABLED # to change: NORMAL
 
-#FLAGS TO SHOW PROGRESS
-checksum_flag = False
-coefB_flag = False
-coefC_flag = False
-reconstr_flag = False
-done_flag = False
+global_flags.init()
+returnedFromAuth = []
+
+CALC = False
+
 
 #longer strings etc.
 class Strings:
@@ -228,7 +229,8 @@ class CurrentData:
 
 
 
-def do_animation(currentframe, window, wrap, time_start, time_elapsed, which, t):
+def do_animation(currentframe, window, wrap, time_start, time_elapsed, which, t, working_label, checksum_done = None, coefB_done = None, coefC_done = None, reconstr_done = None):
+    # global checksum_done, coefB_done, coefC_done, reconstr_done
     def do_image(which):
         if which=="code":
             global code_animation
@@ -238,17 +240,27 @@ def do_animation(currentframe, window, wrap, time_start, time_elapsed, which, t)
             global decode_animation
             wrap.delete('ani')
             wrap.create_image(80,100,image=decode_animation[currentframe], tag='ani')            
-    try:
-        do_image(which)
-    except IndexError:
-        currentframe = 0
-        do_image(which)
-    wrap.update_idletasks() #Force redraw
-    time_now = time.clock()
-    time_elapsed.set(secondformat(time_now-time_start))
-    currentframe = currentframe + 1
-    # Call myself again to keep the animation running in a loop
-    window.after(100, do_animation, currentframe, window, wrap, time_start, time_elapsed, which, t)
+    if t.is_alive():
+        try:
+            do_image(which)
+        except IndexError:
+            currentframe = 0
+            do_image(which)
+        wrap.update_idletasks() #Force redraw
+        time_now = time.clock()
+        time_elapsed.set(secondformat(time_now-time_start))
+        currentframe = currentframe + 1
+
+        if which=="decode":
+            if checksum_flag: markAsDone(checksum_done, "done")
+            if coefB_flag: markAsDone(coefB_done, "done")
+            if coefC_flag: markAsDone(coefC_done, "done")
+            if reconstr_flag: markAsDone(reconstr_done, "done")
+
+        # Call myself again to keep the animation running in a loop
+        window.after(100, do_animation, currentframe, window, wrap, time_start, time_elapsed, which, t, working_label)
+    else:
+        Handlers.finished(window, working_label)
 
 def secondformat(nr):
 
@@ -291,17 +303,20 @@ eFromSlider = 10
 lumFromSlider = 5
 
 class Handlers:
+
+    def finished(self, window, label):
+        label.configure(text="Finished!")
+        a = Timer(2.0, window.destroy)
+        a.start()
+
     def perform(self):
         global code_animation, done, image
 
-        def finished(window, label):
-            label.configure(text="Finished!")
-            t = Timer(2.0, window.destroy)
-            t.start()
+        # tu byla funkcja finished
 
         print "Called perform handler!"
         window = Toplevel(root)
-        t = Process(target=main.perform_compression, args=(image,sizeOfBlock,False,deltaFromSlider,eFromSlider,lumFromSlider))
+        t = Process(target=main.perform_compression, args=(image,sizeOfBlock,CALC,deltaFromSlider,eFromSlider,lumFromSlider))
         for i in range(0,77):
             if i in range(0,10):
                 num = "0" + str(i)
@@ -322,16 +337,15 @@ class Handlers:
         time_label.pack(expand=YES, fill=X)
         button_stop = Button(window, text="STOP", command=lambda:Handlers.destroywindow(window,t))
         button_stop.pack(expand=YES, fill=BOTH)
-        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "code", t)
+        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "code", t, working_label)
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
         t.start()
         window.mainloop()
 
     def authenticate(self):
-        global imageToDecode, sizeOfBlock, eFromSlider, deltaFromSlider, lumFromSlider
-        abc = main.authenticate(imageToDecode, 8, deltaFromSlider, eFromSlider, lumFromSlider)
-        print abc
-
+        global imageToDecode, sizeOfBlock, eFromSlider, deltaFromSlider, lumFromSlider, returnedFromAuth
+        abc = main.authenticate(imageToDecode, 8, CALC, deltaFromSlider, eFromSlider, lumFromSlider)
+        returnedFromAuth = abc
 
     def destroywindow(self, window, t):
         print "Stopped!"
@@ -342,7 +356,7 @@ class Handlers:
             t.terminate()
 
     def decode(self):
-        global decode_animation, checksum_flag, coefC_flag, coefB_flag, done_flag, reconstr_flag, imageToDecode
+        global decode_animation, checksum_flag, coefC_flag, coefB_flag, reconstr_flag, imageToDecode
 
         # finish and close small window
         def finished(window, label):
@@ -410,16 +424,18 @@ class Handlers:
 
         # zakonczono?
         # wywolaj finished(window, working_label)
-        t4 = Timer(6.0, finished, (window, working_label))
-        t4.start()
+        # t4 = Timer(6.0, finished, (window, working_label))
+        # t4.start()
 
+        t = Process(target=main.reconstruction, args=(image,8,returnedFromAuth))
 
         time_label = Label(window, textvariable=time_elapsed)
         time_label.grid(row=7, column=0, columnspan=2)
         button_stop = Button(window, text="STOP", command=lambda:Handlers.destroywindow(window, False))
         button_stop.grid(row=8, column=0, columnspan=2)
-        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "decode", t)
+        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "decode", t, working_label, checksum_done, coefB_done, coefC_done, reconstr_done)
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
+        t.start()
         window.mainloop()
 
 
@@ -510,10 +526,10 @@ block_size_slider.set(8)
 delta_slider.set(8)
 e_slider.set(10)
 lum_slider.set(5)
-block_size_slider.configure(state=DISABLED)
-delta_slider.configure(state=DISABLED)
-e_slider.configure(state=DISABLED)
-lum_slider.configure(state=DISABLED)
+block_size_slider.configure(state=STAN_SUWAKOW)
+delta_slider.configure(state=STAN_SUWAKOW)
+e_slider.configure(state=STAN_SUWAKOW)
+lum_slider.configure(state=STAN_SUWAKOW)
 
 
 spaceSet2_label = Label(settings_tab, text="                 ")
