@@ -38,8 +38,7 @@ def get_quantization_coefficients(quant_block):
 
     return coefficients
 
-def get_coefficients_from_normalized(block):
-    coefficients = get_quantization_coefficients(block)
+def get_coefficients_from_normalized(coefficients):
     from_norm = []
     from_norm.append(from_normalized(coefficients[0],256))
     from_norm.append(from_normalized(coefficients[1],128))
@@ -59,8 +58,9 @@ def compare_best(R,list_to_compare,D_list):
     best = {'E':float('inf')}
     for match in list_to_compare:
         D = transform(D_list[match['x']][match['y']],match['t'])
-        params = compare(R,D)  
-        if params['E'] < best['E']:     
+        params = compare(R,D)
+        # print params['E']  
+        if abs(params['E']) < abs(best['E']):     
             best = params 
             best['x'] = match['x']
             best['y'] = match['y']
@@ -118,13 +118,13 @@ def normalize(number, max_value):
   return number between <0,max_value-1>
   """
   number = int(number)
-  local_max = max_value / 2 - 1
-  if number > local_max:
-    number = local_max
-  if number < - local_max:
-    number = -local_max
+  local_max = max_value / 2
+  if number > local_max - 1:
+    number = local_max - 1
+  if number < - local_max + 1:
+    number = -local_max + 1
 
-  normalized = number + local_max + 1
+  normalized = number + local_max 
   return normalized
 
 def from_normalized(number, max_value):

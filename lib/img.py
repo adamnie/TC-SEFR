@@ -77,11 +77,11 @@ class img(numpy.ndarray):
         return sth_.view(D_block)
 
     def save_block(self,new_block,coords):
-      new_block = new_block.astype(int)
-      size = len(new_block[0])
+      # new_block = new_block.astype(int)
+      size = len(new_block)
       for x in range(size):
         for y in range(size):
-          self[coords['x']+x][coords['y']+y] = new_block[x][y]
+          self[coords['x']+x][coords['y']+y] = new_block[x,y]
 
     def export(self,filename):
       misc.imsave(filename,self)# check this command
