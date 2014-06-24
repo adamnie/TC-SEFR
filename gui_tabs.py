@@ -206,8 +206,8 @@ class CurrentData:
         eFromSlider = e_slider.get()
         lumFromSlider = lum_slider.get()
         deltaFromSlider_txt = "Delta: " + str(delta_slider.get())
-        eFromSlider_txt = "Threshold: " + str(e_slider.get())
-        lumFromSlider_txt = "Brightness offset: " + str(lum_slider.get())
+        eFromSlider_txt = "E threshold: " + str(e_slider.get())
+        lumFromSlider_txt = "DCT threshold: " + str(lum_slider.get())
         current_data=title + "\n" + blocksize + "    " + deltaFromSlider_txt + "    " + eFromSlider_txt + "    " + lumFromSlider_txt
         current_data_label.configure(text=current_data)
     def refresh_img(self):
@@ -228,7 +228,7 @@ class CurrentData:
 
 
 
-def do_animation(currentframe, window, wrap, time_start, time_elapsed, which):
+def do_animation(currentframe, window, wrap, time_start, time_elapsed, which, t):
     def do_image(which):
         if which=="code":
             global code_animation
@@ -248,7 +248,7 @@ def do_animation(currentframe, window, wrap, time_start, time_elapsed, which):
     time_elapsed.set(secondformat(time_now-time_start))
     currentframe = currentframe + 1
     # Call myself again to keep the animation running in a loop
-    window.after(100, do_animation, currentframe, window, wrap, time_start, time_elapsed, which)
+    window.after(100, do_animation, currentframe, window, wrap, time_start, time_elapsed, which, t)
 
 def secondformat(nr):
 
@@ -286,9 +286,9 @@ def markAsDone(what, w):
 code_animation = []
 decode_animation = []
 sizeOfBlock = 8
-deltaFromSlider = 6
-eFromSlider = 6
-lumFromSlider = 100
+deltaFromSlider = 8
+eFromSlider = 10
+lumFromSlider = 5
 
 class Handlers:
     def perform(self):
@@ -299,9 +299,9 @@ class Handlers:
             t = Timer(2.0, window.destroy)
             t.start()
 
-        print "Called perform handler (which does almost nothing)!"
+        print "Called perform handler!"
         window = Toplevel(root)
-        t = Process(target=main.perform_compression, args=(image,sizeOfBlock,deltaFromSlider,eFromSlider,lumFromSlider,False))
+        t = Process(target=main.perform_compression, args=(image,sizeOfBlock,False,deltaFromSlider,eFromSlider,lumFromSlider))
         for i in range(0,77):
             if i in range(0,10):
                 num = "0" + str(i)
@@ -322,14 +322,14 @@ class Handlers:
         time_label.pack(expand=YES, fill=X)
         button_stop = Button(window, text="STOP", command=lambda:Handlers.destroywindow(window,t))
         button_stop.pack(expand=YES, fill=BOTH)
-        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "code")
+        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "code", t)
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
         t.start()
         window.mainloop()
 
     def authenticate(self):
         global imageToDecode, sizeOfBlock, eFromSlider, deltaFromSlider, lumFromSlider
-        abc = main.authenticate(imageToDecode, 8)
+        abc = main.authenticate(imageToDecode, 8, deltaFromSlider, eFromSlider, lumFromSlider)
         print abc
 
 
@@ -350,7 +350,7 @@ class Handlers:
             t = Timer(2.0, window.destroy)
             t.start()
 
-        print "Called decode handler (which does almost nothing)!"
+        print "Called decode handler"
         window = Toplevel(root)
         for i in range(0,77):
             if i in range(0,10):
@@ -397,10 +397,6 @@ class Handlers:
         # wykonano coefB: 
         # markAsDone(coefB_done, "done")
         #
-        #
-
-
-        #
         # t = Timer(5.0, markAsDone, (checksum_done, "done"))
         # t.start()
 
@@ -422,11 +418,9 @@ class Handlers:
         time_label.grid(row=7, column=0, columnspan=2)
         button_stop = Button(window, text="STOP", command=lambda:Handlers.destroywindow(window, False))
         button_stop.grid(row=8, column=0, columnspan=2)
-        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "decode")
+        window.after(10, do_animation, 0, window, wrap, time_start, time_elapsed, "decode", t)
         window.geometry("+" + str(SCREEN_WIDTH/2 - 160/2) + "+" + str(SCREEN_HEIGHT/2 - 200/2) )
         window.mainloop()
-
-
 
 
 def preparePhotoImage(img):
@@ -492,7 +486,7 @@ delta_slider.grid(row=5,column=1, padx=25)
 
 e_img = PhotoImage(file="images/settings_blur.png")
 e_imglabel = Label(settings_tab, image=e_img)
-e_label = Label(settings_tab, text="Threshold", font="Verdana 10 bold")
+e_label = Label(settings_tab, text="E threshold", font="Verdana 10 bold")
 e_desc = Label(settings_tab, text="Responsible for precision of \n fractal compression.")
 e_slider = Scale(settings_tab, from_=5, to=15, orient=HORIZONTAL)
 e_imglabel.grid(row=2,column=2, padx=25)
@@ -503,9 +497,9 @@ e_slider.grid(row=5,column=2, padx=25)
 
 lum_img = PhotoImage(file="images/settings_brightness.png")
 lum_imglabel = Label(settings_tab, image=lum_img)
-lum_label = Label(settings_tab, text="Brightness offset", font="Verdana 10 bold")
-lum_desc = Label(settings_tab, text="Increase/decrease brightness \n of recovered piece by value.")
-lum_slider = Scale(settings_tab, from_=-20, to=20, orient=HORIZONTAL)
+lum_label = Label(settings_tab, text="DCT threshold", font="Verdana 10 bold")
+lum_desc = Label(settings_tab, text="Responsible for precision of \n DCT coefficients.")
+lum_slider = Scale(settings_tab, from_=0, to=20, orient=HORIZONTAL)
 lum_imglabel.grid(row=2,column=3, padx=25)
 lum_label.grid(row=3,column=3, padx=25)
 lum_desc.grid(row=4,column=3,padx=25)
@@ -515,7 +509,11 @@ lum_slider.grid(row=5,column=3, padx=25)
 block_size_slider.set(8)
 delta_slider.set(8)
 e_slider.set(10)
-lum_slider.set(0)
+lum_slider.set(5)
+block_size_slider.configure(state=DISABLED)
+delta_slider.configure(state=DISABLED)
+e_slider.configure(state=DISABLED)
+lum_slider.configure(state=DISABLED)
 
 
 spaceSet2_label = Label(settings_tab, text="                 ")
