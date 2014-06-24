@@ -27,9 +27,9 @@ quantization_table = np.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
                                    [72, 92, 95, 98, 112, 100, 103, 99]]);
 
 
-image = img('./pictures/pepper.pgm')
+image = img('pictures/pepper.pgm')
 
-def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold):
+def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold,filename):
 
   B_coefs = []
   myfractal = fractal()
@@ -39,7 +39,7 @@ def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, 
   listA = imageA.divide(R_block_size)
 
   for i in range(4):
-      nazwa = "./precalculated_files/wspolczynniki_"+ image.name + "_" + str(i) + "_new.json"
+      nazwa = "precalculated_files/wspolczynniki_"+ filename + "_" + str(i) + "_new.json"
       if (not calculate_flg):  # ladowanie z pliku
           if i==0: 
             print "Loading previously calculated watermark data..."
@@ -129,12 +129,14 @@ def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, 
         imageA.save_block(watermarked_block,coords={'x':x,'y':y})
 
   print "Embedding finished. "
-  comp_pic = "./pictures/" + imageA.name + "_watermarked.pgm"
+  comp_pic = "./pictures/" + filename + "_watermarked.pgm"
   imageA.export(comp_pic)
 
 def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold):
   myfractal = fractal()
   myDCT = DCT()
+
+  image.save_block(np.zeros((70,70)),{'x':0,'y':0})
   
   imageA = wm_img(image)
   imageA.type = 'A'
@@ -150,8 +152,7 @@ def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_thr
   listC = imageC.divide(R_block_size)
 
   checksum_is_correct = np.zeros([len(listA),len(listA)])
-
-  # imageA.save_block(np.zeros((70,70)),{'x':0,'y':0})
+  imageA.plot()
 
   A_type_is_ok = np.zeros([len(listA),len(listA)])
   B_type_is_ok = np.zeros([len(listB),len(listB)])
@@ -236,8 +237,8 @@ def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_thr
         x = i * R_block_size + quadrant_offset_B['x']
         y = j * R_block_size + quadrant_offset_B['y']
 
-        x_type_B = i * R_block_size + mapper_offset_C['x']
-        y_type_B = j * R_block_size + mapper_offset_C['y']
+        x_type_B = i * R_block_size + mapper_offset_B['x']
+        y_type_B = j * R_block_size + mapper_offset_B['y']
 
         blockA = imageA.get_block({'x':x,'y':y})
         blockB = imageB.get_block({'x':x_type_B,'y':y_type_B})
@@ -248,7 +249,6 @@ def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_thr
 
         for k in range(6):
           # adding threshold, because somehow there's problem with saving and retriving image
-          print abs(B_recalculated[k] - data[1][k])
           if abs(B_recalculated[k] - data[1][k]) >= dct_threshold:
             B_correct = False
 
@@ -304,7 +304,7 @@ def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_thr
   correctness_table = checksum_is_correct + B_type_is_ok + C_type_is_ok
   return [checksum_is_correct,B_type_is_ok,C_type_is_ok]
 
-def reconstruction(image, R_block_size,correctness):
+def reconstruction(image, R_block_size,correctness,filename):
   myfractal = fractal()
   myreconstruct = reconstruct()
   myDCT = DCT()
@@ -380,28 +380,33 @@ def reconstruction(image, R_block_size,correctness):
     for i in range(blocks_in_quad):
       for j in range(blocks_in_quad):
 
-          x = i * R_block_size + quadrant_offset_A['x']
-          y = j * R_block_size + quadrant_offset_A['y']
+          x = i * R_block_size + quadrant_offset_B['x']
+          y = j * R_block_size + quadrant_offset_B['y']
 
           i_mapp = i + mapper_offset_B['x'] / R_block_size
           j_mapp = j + mapper_offset_B['y'] / R_block_size
 
-          i_quad = i + quadrant_offset_A['x'] / R_block_size
-          j_quad = j + quadrant_offset_A['y'] / R_block_size
+          i_quad = i + quadrant_offset_B['x'] / R_block_size
+          j_quad = j + quadrant_offset_B['y'] / R_block_size
 
           x_type_B = i * R_block_size + mapper_offset_B['x']
           y_type_B = j * R_block_size + mapper_offset_B['y']
 
+          x_type_A = i * R_block_size + mapper_offset_A['x']
+          y_type_A = j * R_block_size + mapper_offset_A['y']
+
+
           blockA = imageA.get_block({'x':x_type_B,'y':y_type_B})
           data = retrieve_watermark_and_checksum(blockA)
           data[1] = get_coefficients_from_normalized(data[1]) 
-          reconstruct_B.save_block(myDCT.reverse_rosiek(data[1]),{'x':x_type_B,'y':y_type_B})
+          reconstruct_B.save_block(myDCT.reverse_rosiek(data[1]),{'x':x_type_A,'y':y_type_A})
 
   imageB_new = reconstruct_B
 
   # Reconstruction C
+
   reconstruct_C = wm_img(copy.deepcopy(image))
-  reconstruct_C.type = 'C'
+  reconstruct_C.type = 'A'
 
   for quadrant in range(4):
     mapper_q_A = imageA.quadrant_attr[quadrant]['mapper']
@@ -437,29 +442,32 @@ def reconstruction(image, R_block_size,correctness):
           x_type_C = i * R_block_size + mapper_offset_C['x']
           y_type_C = j * R_block_size + mapper_offset_C['y']
 
+          x_type_A = i * R_block_size + mapper_offset_A['x']
+          y_type_A = j * R_block_size + mapper_offset_A['y']
+
+
           blockA = imageA.get_block({'x':x_type_C,'y':y_type_C})
           data = retrieve_watermark_and_checksum(blockA)
           data[2] = get_coefficients_from_normalized(data[2]) 
-          reconstruct_C.save_block(myDCT.reverse_rosiek(data[2]),{'x':x_type_C,'y':y_type_C})
+          reconstruct_C.save_block(myDCT.reverse_rosiek(data[2]),{'x':x_type_A,'y':y_type_A})
 
 
   imageC_new = reconstruct_C
 
-  imageA_new.plot()
-  imageB_new.plot()
-  imageC_new.plot()
-
-  reconstructed_Image = myreconstruct.whole_img(imageA_new,imageB_new,imageC_new,correctness,R_block_size,blocks_in_quad) 
+  reconstructed_Image = myreconstruct.whole_img(imageA,imageA_new,imageB_new,imageC_new,correctness,R_block_size,blocks_in_quad) 
   reconstructed_Image.plot()
 
-B = perform_compression(image,8,False,10,10,10)
+  reconstructed_Image.export(filename+'_reconstructed_'+'.pgm')
 
-wm_image = img('./pictures/pepper_watermarked.pgm')
+nazwa = 'pepper'
+B = perform_compression(image,8,False,10,10,10,nazwa)
+
+wm_image = img('pictures/pepper_watermarked.pgm')
 
 correctness_data = authenticate(wm_image,8,5,5,5,5)
 
 print correctness_data
 
-reconstruction(wm_image,8,correctness_data)
+reconstruction(wm_image,8,correctness_data,nazwa)
 
 
