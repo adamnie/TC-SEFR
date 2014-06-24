@@ -13,7 +13,6 @@ import webbrowser
 from threading import Timer
 import main
 from multiprocessing import Process
-import global_flags
 import sys
 import os
 
@@ -354,7 +353,7 @@ class Handlers:
 
     def authenticate(self):
         global imageToDecode, sizeOfBlock, eFromSlider, deltaFromSlider, lumFromSlider, returnedFromAuth
-        abc = main.authenticate(imageToDecode, 8, CALC, deltaFromSlider, eFromSlider, lumFromSlider, decompressedname)
+        abc = main.authenticate(imageToDecode, 8, CALC, deltaFromSlider, eFromSlider, lumFromSlider)
         returnedFromAuth = abc
         ones = [0,0,0]
         count = [0,0,0]
@@ -458,7 +457,7 @@ class Handlers:
         # t4 = Timer(6.0, finished, (window, working_label))
         # t4.start()
 
-        t = Process(target=main.reconstruction, args=(image,8,returnedFromAuth))
+        t = Process(target=main.reconstruction, args=(image,8,returnedFromAuth, decompressedname))
 
         time_label = Label(window, textvariable=time_elapsed)
         time_label.grid(row=7, column=0, columnspan=2)
