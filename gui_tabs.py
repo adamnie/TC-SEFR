@@ -22,7 +22,6 @@ LANGUAGE = "EN"
 VERBOSE = True
 STAN_SUWAKOW = DISABLED # to change: NORMAL
 
-global_flags.init()
 returnedFromAuth = []
 
 compressedname = ""
