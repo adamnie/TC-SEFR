@@ -1,6 +1,9 @@
 #!/bin/bash
 
 sudo apt-get update
-sudo apt-get install python2.7 python-pip python-tk python-imaging-tk python-scipy python-matplotlib python-numpy
-pip install Pillow
-
+sudo apt-get install python2.7 python-pip
+pip install numpy Pillow scipy matplotlib
+sudo apt-get install python-tk
+sudo apt-get install python-imaging-tk
+sudo apt-get install python-scipy
+sudo apt-get install python-matplotlib

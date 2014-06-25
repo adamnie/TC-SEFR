@@ -72,8 +72,8 @@ the integrity of digital image.
 
 In this program, we implement algorithm from
         """
-        decode_tab_name = "Decompress"
-        code_tab_name = "Compress"
+        decode_tab_name = "Code"
+        code_tab_name = "Decode"
         about_tab_name = "About"
         block_size_label = """
     Block size
@@ -147,12 +147,12 @@ class Dialogue:
     def __init__(self, root):
         # default options for opening file
         self.file_opt = options = {}
-        options['defaultextension'] = '.txt'
-        options['filetypes'] = [('all files', '.*'), ('text files', '.txt')]
+        options['defaultextension'] = '.pgm'
+        options['filetypes'] = [('all files', '.*'), ('pgm files', '.pgm')]
         options['initialdir'] = 'C:\\'
-        options['initialfile'] = 'myfile.txt'
+        options['initialfile'] = 'myfile.pgm'
         options['parent'] = root
-        options['title'] = 'This is a title'
+        options['title'] = 'PGM files'
 
     def openfilename(self, which):
         #tkFileDialog
