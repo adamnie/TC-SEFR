@@ -72,8 +72,8 @@ the integrity of digital image.
 
 In this program, we implement algorithm from
         """
-        decode_tab_name = "Decompress"
-        code_tab_name = "Compress"
+        decode_tab_name = "Code"
+        code_tab_name = "Decode"
         about_tab_name = "About"
         block_size_label = """
     Block size
@@ -147,12 +147,12 @@ class Dialogue:
     def __init__(self, root):
         # default options for opening file
         self.file_opt = options = {}
-        options['defaultextension'] = '.txt'
-        options['filetypes'] = [('all files', '.*'), ('text files', '.txt')]
+        options['defaultextension'] = '.pgm'
+        options['filetypes'] = [('all files', '.*'), ('pgm files', '.pgm')]
         options['initialdir'] = 'C:\\'
-        options['initialfile'] = 'myfile.txt'
+        options['initialfile'] = 'myfile.pgm'
         options['parent'] = root
-        options['title'] = 'This is a title'
+        options['title'] = 'PGM files'
 
     def openfilename(self, which):
         #tkFileDialog
@@ -373,7 +373,7 @@ class Handlers:
         first = ones[0]/float(count[0])
         second = ones[1]/float(count[1])
         third = ones[2]/float(count[2])
-        auth_text = "Checksum: " + str(ones[0]) + "/" + str(count[0]) + "\nWatermarks: \nA: " + str(ones[1]) + "/" + str(count[1]) + "  B: " + str(ones[1]) + "/" + str(count[1]) + "  C: " + str(ones[2]) + "/" + str(count[2])
+        auth_text = "Checksum: " + str(ones[0]) + "/" + str(count[0]) + "\nWatermarks: \nA: " + str(ones[0]) + "/" + str(count[0]) + "  B: " + str(ones[1]) + "/" + str(count[1]) + "  C: " + str(ones[2]) + "/" + str(count[2])
         auth_label.configure(text=auth_text)
         decode_button.configure(state=NORMAL)
 
