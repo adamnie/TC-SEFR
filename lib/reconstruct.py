@@ -107,6 +107,8 @@ class reconstruct :
                   block_C = 0
                 if wages > 0:
                   reconstructed_block = (block_A + block_B + block_C) / wages
+                else:
+                  reconstructed_block = original.get_block({'x':x,'y':y})
               else:
                reconstructed_block = original.get_block({'x':x,'y':y})
 

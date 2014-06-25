@@ -26,7 +26,7 @@ quantization_table = np.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
 def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold,filename):
 
   ## default calculate
-  calculate_flg = False
+  calculate_flg = True
   B_coefs = []
   myfractal = fractal()
   myDCT = DCT()

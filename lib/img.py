@@ -113,7 +113,12 @@ class img(numpy.ndarray):
       return block.view(img)
 
     def get_block(self,coords,size=8):
-      return self.cut_block(coords['x'],coords['y'],size)
+      try:
+        block =  self.cut_block(coords['x'],coords['y'],size)
+      except ValueError:
+        coords['x'] = coords['x'] - coords['x'] % size
+        coords['y'] = coords['y'] - coords['y'] % size
+      return block
 
     def block_number_x(self,blocksize):
       return self.width()/blocksize
