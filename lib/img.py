@@ -79,16 +79,16 @@ class img(numpy.ndarray):
     def save_block(self,new_block,coords):
       # new_block = new_block.astype(int)
       try:
-        x = x - x % 8
-        y = y - y % 8
+        coords['x'] = coords['x'] - coords['x'] % 8
+        coords['y'] = coords['y'] - coords['y'] % 8
         size = len(new_block)
         for x in range(size):
           for y in range(size):
             self[coords['x']+x][coords['y']+y] = new_block[x,y]
       except ValueError:
         print "Save block value error"
-        x = x - x % 8
-        y = y - y % 8
+        coords['x'] = coords['x'] - coords['x'] % 8
+        coords['y'] = coords['y'] - coords['y'] % 8
         size = len(new_block)
         for x in range(size):
           for y in range(size):
