@@ -373,7 +373,7 @@ class Handlers:
         first = ones[0]/float(count[0])
         second = ones[1]/float(count[1])
         third = ones[2]/float(count[2])
-        auth_text = "Checksum: " + str(ones[0]) + "/" + str(count[0]) + "\nWatermarks: \nA: " + str(ones[1]) + "/" + str(count[1]) + "  B: " + str(ones[1]) + "/" + str(count[1]) + "  C: " + str(ones[2]) + "/" + str(count[2])
+        auth_text = "Checksum: " + str(ones[0]) + "/" + str(count[0]) + "\nWatermarks: \nA: " + str(ones[0]) + "/" + str(count[0]) + "  B: " + str(ones[1]) + "/" + str(count[1]) + "  C: " + str(ones[2]) + "/" + str(count[2])
         auth_label.configure(text=auth_text)
         decode_button.configure(state=NORMAL)
 
