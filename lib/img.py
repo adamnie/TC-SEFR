@@ -78,10 +78,21 @@ class img(numpy.ndarray):
 
     def save_block(self,new_block,coords):
       # new_block = new_block.astype(int)
-      size = len(new_block)
-      for x in range(size):
-        for y in range(size):
-          self[coords['x']+x][coords['y']+y] = new_block[x,y]
+      try:
+        x = x - x % 8
+        y = y - y % 8
+        size = len(new_block)
+        for x in range(size):
+          for y in range(size):
+            self[coords['x']+x][coords['y']+y] = new_block[x,y]
+      except ValueError:
+        print "Save block value error"
+        x = x - x % 8
+        y = y - y % 8
+        size = len(new_block)
+        for x in range(size):
+          for y in range(size):
+            self[coords['x']+x][coords['y']+y] = 0
 
     def export(self,filename):
       misc.imsave(filename,self)# check this command
@@ -105,11 +116,20 @@ class img(numpy.ndarray):
       return np.roll(self,shift_amount,axis=1)
 
     def cut_block(self,x,y,size):
-      horizontal = self[x:x+size]
-      #initialiing empy block with proper shape
-      block = np.zeros(shape=(size,size))
-      for col in range(size):
-          block[col] = (horizontal[col])[y:y+size]
+      try:
+        x = x - x % 8
+        y = y - y % 8
+        horizontal = self[x:x+size]
+        #initialiing empy block with proper shape
+        block = np.zeros(shape=(size,size))
+        for col in range(size):
+            block[col] = (horizontal[col])[y:y+size]
+      except ValueError:
+        print size
+        block = np.zeros()
+      except IndexError:
+        print "Index error"
+
       return block.view(img)
 
     def get_block(self,coords,size=8):
@@ -118,13 +138,14 @@ class img(numpy.ndarray):
       except ValueError:
         coords['x'] = coords['x'] - coords['x'] % size
         coords['y'] = coords['y'] - coords['y'] % size
+        block =  self.cut_block(coords['x'],coords['y'],size)
       return block
 
     def block_number_x(self,blocksize):
-      return self.width()/blocksize
+      return self.width() / blocksize
 
     def block_number_y(self,blocksize):
-      return self.height()/blocksize
+      return self.height() / blocksize
 
     def width(self):
       return len(self[1])
