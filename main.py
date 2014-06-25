@@ -26,7 +26,7 @@ quantization_table = np.matrix([[16, 11, 10, 16, 24, 40, 51, 61],
 def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold,filename):
 
   ## default calculate
-  calculate_flg = True
+  calculate_flg = False
   B_coefs = []
   myfractal = fractal()
   myDCT = DCT()
@@ -131,7 +131,8 @@ def perform_compression(image, R_block_size, calculate_flg, delta, E_threshold, 
 def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_threshold):
   myfractal = fractal()
   myDCT = DCT()
-  
+  print image.width()
+  print image.height()
   imageA = wm_img(image)
   imageA.type = 'A'
   listA = imageA.divide(R_block_size)
@@ -295,6 +296,7 @@ def authenticate(image, R_block_size, calculate_flg, delta, E_threshold, dct_thr
             C_type_is_ok[i_quad][j_quad] = -1   
 
   correctness_table = checksum_is_correct + B_type_is_ok + C_type_is_ok
+  print "Authentication performed"
   return [checksum_is_correct,B_type_is_ok,C_type_is_ok]
 
 def reconstruction(image, R_block_size,correctness,filename):
@@ -341,6 +343,9 @@ def reconstruction(image, R_block_size,correctness,filename):
         data = retrieve_watermark_and_checksum(blockA)
         x_base = data[0]['x'] + mapper_offset['x']
         y_base = data[0]['y'] + mapper_offset['y']
+
+        x_base = x_base - x_base % 8
+        y_base = y_base - y_base % 8
 
         base_block = imageA.get_block({'x': x_base,'y':y_base})
         reconstructed_block = myreconstruct.block_A(base_block,data[0],R_block_size)
