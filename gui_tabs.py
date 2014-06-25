@@ -72,8 +72,8 @@ the integrity of digital image.
 
 In this program, we implement algorithm from
         """
-        decode_tab_name = "Code"
-        code_tab_name = "Decode"
+        decode_tab_name = "Decode"
+        code_tab_name = "Code"
         about_tab_name = "About"
         block_size_label = """
     Block size
@@ -630,7 +630,7 @@ img_code_label = Label(code_tab, image=image_thumb)
 img_code_label.image=image_thumb
 img_code_label.grid(row=1,column=2, rowspan=6)
 
-compress_title_label = Label(code_tab, text="Perform compression", font="Verdana 15 bold")
+compress_title_label = Label(code_tab, text="Encode", font="Verdana 15 bold")
 compress_title_label.grid(row=1,column=0, pady=30)
 
 open_button = Button(code_tab, text=Strings.load_file, command=lambda:Dialogue.openfilename("code"))
@@ -663,7 +663,7 @@ img_decode_label.grid(row=1,column=2,rowspan=6)
 spaceDecode_label = Label(decode_tab, text="         \n          ")
 spaceDecode_label.grid(row=0,column=0,columnspan=3)
 
-decompress_title_label = Label(decode_tab, text="Perform decompression", font="Verdana 15 bold")
+decompress_title_label = Label(decode_tab, text="Decode", font="Verdana 15 bold")
 decompress_title_label.grid(row=1,column=0, pady=30)
 
 openToDecode_button = Button(decode_tab, text=Strings.load_file, command=lambda:Dialogue.openfilename("decode"))
